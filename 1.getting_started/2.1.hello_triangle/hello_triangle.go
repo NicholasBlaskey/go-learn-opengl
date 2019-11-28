@@ -8,6 +8,7 @@ import(
 	"log"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"unsafe"
 )
 
 const windowWidth  = 800
@@ -49,6 +50,24 @@ func compileShaders() []uint32 {
 	defer freeFragmentShaderFunc()
 	defer freeVertexShaderFunc()
 
+	// Handles error checking
+	var success int32
+	gl.GetShaderiv(vertexShader, gl.COMPILE_STATUS, &success)
+	if success != 1 {
+		var infoLog [512]byte
+		gl.GetShaderInfoLog(vertexShader, 512, nil,
+			(*uint8)(unsafe.Pointer(&infoLog)))
+		log.Fatalln("Vertex shader failed", "\n", string(infoLog[:512]))
+	}
+	
+	gl.GetShaderiv(fragmentShader, gl.COMPILE_STATUS, &success)
+	if success != 1 {
+		var infoLog [512]byte
+		gl.GetShaderInfoLog(fragmentShader, 512, nil,
+			(*uint8)(unsafe.Pointer(&infoLog)))
+		log.Fatalln("Fragment shader failed", "\n", string(infoLog[:512]))
+	}
+
 	return []uint32{vertexShader, fragmentShader}
 }
 
@@ -59,10 +78,21 @@ func linkShaders(shaders []uint32) uint32 {
 	}
 	gl.LinkProgram(program)
 
+	// Check program link errors
+	var success int32
+	gl.GetProgramiv(program, gl.LINK_STATUS, &success)
+	if success != 1 {
+		var infoLog [512]byte
+		gl.GetProgramInfoLog(program, 512, nil,
+			(*uint8)(unsafe.Pointer(&infoLog)))
+		log.Fatalln("Program link failed", "\n", string(infoLog[:512]))
+	}
+
 	// Delete the shaders because we are done with them
 	for _, shader := range shaders {
 		gl.DeleteShader(shader)
 	}
+
 
 	return program
 }
