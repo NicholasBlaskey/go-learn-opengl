@@ -1,5 +1,5 @@
-// Copied basically statement for statement from
-// https://github.com/cstegel/opengl-samples-golang/blob/1ed56cc6485acc36ebd30234dd7f405d2080b844/hello-triangle/hello_triangle.go#L98
+// Basically just translated from
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
 
 package main
 
