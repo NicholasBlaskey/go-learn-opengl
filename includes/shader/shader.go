@@ -10,11 +10,11 @@ import(
 	"io/ioutil"
 )
 
-type Shader struct {
+type shader struct {
 	ID uint32 
 }
 
-func MakeShaders(vertexPath string, fragmentPath string) Shader {
+func MakeShaders(vertexPath string, fragmentPath string) shader {
 	// Read the source code into strings
 	vertexCodeBytes, err := ioutil.ReadFile(vertexPath)
 	if err != nil {
@@ -49,47 +49,34 @@ func MakeShaders(vertexPath string, fragmentPath string) Shader {
 	gl.AttachShader(ID, fragmentShader)
 	gl.LinkProgram(ID)
 
-//delete
-	// Check program link errors
-	var success int32
-	gl.GetProgramiv(ID, gl.LINK_STATUS, &success)
-	if success != 1 {
-		var infoLog [512]byte
-		gl.GetProgramInfoLog(ID, 512, nil,
-			(*uint8)(unsafe.Pointer(&infoLog)))
-		log.Fatalln("Program link failed", "\n", string(infoLog[:512]))
-	}
-//delete
-
-	//checkCompileErrors(ID, "PROGRAM")
+	checkCompileErrors(ID, "PROGRAM")
 
 	// Delete shaders
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-	s := Shader{ID: ID}
-	return s
+        return shader{ID: ID}
 }
 
-func (shader Shader) Use() {
-	gl.UseProgram(shader.ID)
+func (s shader) Use() {
+	gl.UseProgram(s.ID)
 }
 
-func (shader Shader) SetBool(name string, value bool) {
+func (s shader) SetBool(name string, value bool) {
 	var intValue int32 = 0
 	if value {
 		intValue = 1
 	}
 	
-	gl.Uniform1i(gl.GetUniformLocation(shader.ID, gl.Str(name)), intValue)
+	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name)), intValue)
 }
 
-func (shader Shader) SetInt(name string, value int32) {
-	gl.Uniform1i(gl.GetUniformLocation(shader.ID, gl.Str(name)), value)
+func (s shader) SetInt(name string, value int32) {
+	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name)), value)
 }
 
-func (shader Shader) SetFloat(name string, value float32) {
-	gl.Uniform1f(gl.GetUniformLocation(shader.ID, gl.Str(name)), value)
+func (s shader) SetFloat(name string, value float32) {
+	gl.Uniform1f(gl.GetUniformLocation(s.ID, gl.Str(name)), value)
 }
 
 func checkCompileErrors(shader uint32, shaderType string) {
