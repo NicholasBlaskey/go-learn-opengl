@@ -48,7 +48,20 @@ func MakeShaders(vertexPath string, fragmentPath string) Shader {
 	gl.AttachShader(ID, vertexShader)
 	gl.AttachShader(ID, fragmentShader)
 	gl.LinkProgram(ID)
-	checkCompileErrors(ID, "PROGRAM")
+
+//delete
+	// Check program link errors
+	var success int32
+	gl.GetProgramiv(ID, gl.LINK_STATUS, &success)
+	if success != 1 {
+		var infoLog [512]byte
+		gl.GetProgramInfoLog(ID, 512, nil,
+			(*uint8)(unsafe.Pointer(&infoLog)))
+		log.Fatalln("Program link failed", "\n", string(infoLog[:512]))
+	}
+//delete
+
+	//checkCompileErrors(ID, "PROGRAM")
 
 	// Delete shaders
 	gl.DeleteShader(vertexShader)
@@ -81,20 +94,24 @@ func (shader Shader) SetFloat(name string, value float32) {
 
 func checkCompileErrors(shader uint32, shaderType string) {
 	var success int32
-	var infoLog [512]byte
+	var infoLog [1024]byte
 	
 	var status uint32 = gl.COMPILE_STATUS
     stageMessage := "Shader_Compilation_error"
     errorFunc := gl.GetShaderInfoLog
+	getIV := gl.GetShaderiv
 	if shaderType == "PROGRAM" {		
 		status = gl.LINK_STATUS
 		stageMessage = "Program_link_error"
 		errorFunc = gl.GetProgramInfoLog
+		getIV = gl.GetProgramiv
 	}
-	
-	gl.GetShaderiv(shader, status, &success)
+
+	getIV(shader, status, &success)
 	if success != 1 {
-		errorFunc(shader, 512, nil, (*uint8) (unsafe.Pointer(&infoLog)))
-		log.Fatalln(stageMessage, shaderType, "\n", string(infoLog[:512]))
+		errorFunc(shader, 1024, nil, (*uint8) (unsafe.Pointer(&infoLog)))
+		log.Print(stageMessage, shaderType, "\n", string(infoLog[:1024]))
+		//log.Fatalln("FUCK|")
+		log.Fatalln(string(infoLog[:1024]))
 	}
 }
