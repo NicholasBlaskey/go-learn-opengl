@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/3.2.shaders_interpolation/shaders_interpolation.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/3.3.shaders_class/shaders_class.cpp
 
 package main
 
@@ -8,7 +8,7 @@ import(
 	"log"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"go-learn-opengl/includes/shader"
+	"github.com/go-learn-opengl/includes/shader"
 )
 
 const windowWidth  = 800
