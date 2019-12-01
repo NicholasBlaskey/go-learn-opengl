@@ -30,14 +30,14 @@ func MakeShaders(vertexPath string, fragmentPath string) shader {
 
 	// Compile the shaders
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
-	shaderSource, freeVertex := gl.Strs(vertexCode)
+	shaderSource, freeVertex := gl.Strs(vertexCode + "\x00")
 	defer freeVertex()
 	gl.ShaderSource(vertexShader, 1, shaderSource, nil)
 	gl.CompileShader(vertexShader)
 	checkCompileErrors(vertexShader, "VERTEX")
 	
 	fragmentShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-	shaderSource, freeFragment := gl.Strs(fragmentCode)
+	shaderSource, freeFragment := gl.Strs(fragmentCode + "\x00")
 	defer freeFragment()
 	gl.ShaderSource(fragmentShader, 1, shaderSource, nil)
 	gl.CompileShader(fragmentShader)
@@ -55,7 +55,7 @@ func MakeShaders(vertexPath string, fragmentPath string) shader {
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-        return shader{ID: ID}
+	return shader{ID: ID}
 }
 
 func (s shader) Use() {
@@ -97,8 +97,6 @@ func checkCompileErrors(shader uint32, shaderType string) {
 	getIV(shader, status, &success)
 	if success != 1 {
 		errorFunc(shader, 1024, nil, (*uint8) (unsafe.Pointer(&infoLog)))
-		log.Print(stageMessage, shaderType, "\n", string(infoLog[:1024]))
-		//log.Fatalln("FUCK|")
-		log.Fatalln(string(infoLog[:1024]))
+		log.Fatalln(stageMessage + shaderType + string(infoLog[:1024]))
 	}
 }
