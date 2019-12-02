@@ -68,15 +68,16 @@ func (s shader) SetBool(name string, value bool) {
 		intValue = 1
 	}
 	
-	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name)), intValue)
+	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")),
+		intValue)
 }
 
 func (s shader) SetInt(name string, value int32) {
-	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name)), value)
+	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")), value)
 }
 
 func (s shader) SetFloat(name string, value float32) {
-	gl.Uniform1f(gl.GetUniformLocation(s.ID, gl.Str(name)), value)
+	gl.Uniform1f(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")), value)
 }
 
 func checkCompileErrors(shader uint32, shaderType string) {
