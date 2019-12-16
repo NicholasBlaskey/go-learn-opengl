@@ -1,10 +1,9 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/5.2.transformations_exercise2/transformations_exercise2.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/6.1.coordinate_systems/coordinate_systems.cpp
 
 package main
 
 import(
-	"math"
 	"runtime"
 	"log"
 	"unsafe"
@@ -100,7 +99,7 @@ func main() {
 
 	window.SetKeyCallback(keyCallback)
 
-	ourShader := shader.MakeShaders("5.3.transform.vs", "5.3.transform.fs")
+	ourShader := shader.MakeShaders("6.1.coordinate_systems.vs", "6.1.coordinate_systems.fs")
 	
 	VBO, VAO, EBO := createTriangleObjects()
 	
@@ -166,7 +165,7 @@ func main() {
 	for !window.ShouldClose() {
 		// Poll events and call their registered callbacks
 		glfw.PollEvents()
-		
+
 		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		
@@ -176,30 +175,32 @@ func main() {
 		gl.ActiveTexture(gl.TEXTURE1)
 		gl.BindTexture(gl.TEXTURE_2D, texture2ID)
 
-		// Create transformation matrix for first image
+		// Activate shader
 		ourShader.Use()
-		transform := mgl32.Translate3D(0.5, -0.5, 0.0)
-		transform = transform.Mul4(mgl32.HomogRotate3D(
-			float32(glfw.GetTime()), mgl32.Vec3{0.0, 0.0, 1.0}))
+
+		// Create our matrixes to transform with
+		model := mgl32.HomogRotate3D(mgl32.DegToRad(-55),
+			mgl32.Vec3{1.0, 0.0, 0.0})
+		view := mgl32.Translate3D(0.0, 0.0, -3.0)
+		projection := mgl32.Perspective(mgl32.DegToRad(45.0),
+			float32(windowHeight) / windowWidth, 0.1, 100.0)
 
 		// Get the matrix location and set the matrix in shader program
-		transformLoc := gl.GetUniformLocation(ourShader.ID,
-			gl.Str("transform" + "\x00"))
-		gl.UniformMatrix4fv(transformLoc, 1, false, &transform[0])
-		
+		modelLoc := gl.GetUniformLocation(ourShader.ID,
+			gl.Str("model" + "\x00"))
+		viewLoc := gl.GetUniformLocation(ourShader.ID,
+			gl.Str("view" + "\x00"))
+		projLoc := gl.GetUniformLocation(ourShader.ID,
+			gl.Str("projection" + "\x00"))
+
+		gl.UniformMatrix4fv(modelLoc, 1, false, &model[0])
+		gl.UniformMatrix4fv(viewLoc, 1, false, &view[0])
+		gl.UniformMatrix4fv(projLoc, 1, false, &projection[0])
+
 		// Drawing loop
 		gl.BindVertexArray(VAO)
 		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT,
 			unsafe.Pointer(nil))
-
-		// Create transformation matrix for the second image
-		transform = mgl32.Translate3D(-0.5, 0.5, 0.0)
-		scale := float32(math.Sin(glfw.GetTime()))
-		transform = transform.Mul4(mgl32.Scale3D(scale, scale, scale))
-		gl.UniformMatrix4fv(transformLoc, 1, false, &transform[0])
-		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT,
-			unsafe.Pointer(nil))
-		
 		gl.BindVertexArray(0)
 
 		window.SwapBuffers()

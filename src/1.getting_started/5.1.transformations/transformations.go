@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/4.2.textures_combined/textures_combined.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/1.getting_started/5.1.transformations/transformations.cpp
 
 package main
 
