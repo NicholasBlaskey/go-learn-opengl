@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/tree/master/src/1.getting_started/6.3.coordinate_systems_multiple
+// https://learnopengl.com/code_viewer.php?code=getting-started/coordinate_systems-exercise3
 
 package main
 
@@ -125,8 +125,8 @@ func main() {
 	// Config gl global state
 	gl.Enable(gl.DEPTH_TEST)
 	
-	ourShader := shader.MakeShaders("6.3.coordinate_systems.vs",
-		"6.3.coordinate_systems.fs")
+	ourShader := shader.MakeShaders("6.4.coordinate_systems.vs",
+		"6.4.coordinate_systems.fs")
 	
 	VBO, VAO := createTriangleObjects()
 
@@ -237,12 +237,16 @@ func main() {
 		// Drawing loop
 		gl.BindVertexArray(VAO)
 		for i := 0; i < 10; i++ {
+			rotation := float32(20.0 * i)
+			if i % 3 == 0 {
+				rotation = float32(glfw.GetTime() * 25)
+			}
+			
 			model := mgl32.Translate3D(cubePositions[i][0],
 				cubePositions[i][1], cubePositions[i][2])
-
 			model = model.Mul4(mgl32.HomogRotate3D(
-				mgl32.DegToRad(float32(20 * i)),
-				mgl32.Vec3{1.0, 0.3, 0.5}.Normalize()))
+				mgl32.DegToRad(rotation), mgl32.Vec3{1.0, 0.3, 0.5}.Normalize()))
+			
 			
 			modelLoc := gl.GetUniformLocation(ourShader.ID,
 				gl.Str("model" + "\x00"))

@@ -207,7 +207,7 @@ func main() {
 
 		// Create our matrixes to transform with
 		model := mgl32.HomogRotate3D(float32(glfw.GetTime()),
-			mgl32.Vec3{1.0, 0.0, 0.0})
+			mgl32.Vec3{0.5, 1.0, 0.0}.Normalize())
 		view := mgl32.Translate3D(0.0, 0.0, -3.0)
 		projection := mgl32.Perspective(mgl32.DegToRad(45.0),
 			float32(windowHeight) / windowWidth, 0.1, 100.0)
