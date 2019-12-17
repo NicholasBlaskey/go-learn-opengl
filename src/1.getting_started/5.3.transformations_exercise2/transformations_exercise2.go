@@ -15,8 +15,8 @@ import(
 	
 	"github.com/disintegration/imaging"
 	
-	"github.com/go-learn-opengl/includes/shader"
-	"github.com/go-learn-opengl/includes/texture"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/texture"
 )
 
 const windowWidth  = 800

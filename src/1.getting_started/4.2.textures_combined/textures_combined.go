@@ -6,11 +6,12 @@ package main
 import(
 	"runtime"
 	"log"
+	"unsafe"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/go-learn-opengl/includes/shader"
-	"github.com/go-learn-opengl/includes/texture"
-	"unsafe"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/texture"
 	"github.com/disintegration/imaging"
 )
 
