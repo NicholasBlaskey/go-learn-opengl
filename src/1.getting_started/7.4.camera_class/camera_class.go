@@ -6,7 +6,6 @@ package main
 import(
 	"runtime"
 	"log"
-	"math"
 	
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -16,29 +15,25 @@ import(
 	
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/texture"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
 )
 
 const windowWidth  = 800
 const windowHeight = 600
 
-var cameraPos   mgl32.Vec3 = mgl32.Vec3{0.0, 0.0, 3.0}
-var cameraFront mgl32.Vec3 = mgl32.Vec3{0.0, 0.0, -1.0}
-var cameraUp    mgl32.Vec3 = mgl32.Vec3{0.0, 1.0, 0.0}
+// camera
+var ourCamera camera.Camera = camera.NewCamera(
+	0.0, 0.0, 3.0, // pos xyz
+	0.0, 1.0, 0.0, // up xyz
+	-90.0, 0.0,    // Yaw and pitch
+	25.0, 45.0, 0.1)   // Speed, zoom, and mouse sensitivity 
+var firstMouse bool = true
+var lastX float32   = windowWidth / 2
+var lastY float32   = windowHeight / 2
 
 var deltaTime float32 = 0.0
 var lastFrame float32 = 0.0
 
-var heldW bool = false
-var heldA bool = false
-var heldS bool = false
-var heldD bool = false
-
-var firstMouse bool = true
-var yaw float32     = -90.0
-var pitch float32   = 0.0
-var lastX float32   = windowWidth / 2
-var lastY float32   = windowHeight / 2
-var fov float32     = 45.0
 
 func createTriangleObjects() (uint32, uint32) {
 	vertices := []float32{
@@ -150,7 +145,7 @@ func main() {
 	// Config gl global state
 	gl.Enable(gl.DEPTH_TEST)
 	
-	ourShader := shader.MakeShaders("7.3.camera.vs", "7.3.camera.fs")
+	ourShader := shader.MakeShaders("7.4.camera.vs", "7.4.camera.fs")
 	
 	VBO, VAO := createTriangleObjects()
 
@@ -249,7 +244,7 @@ func main() {
 		// Activate shader
 		ourShader.Use()
 
-		projection := mgl32.Perspective(mgl32.DegToRad(fov),
+		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
 			float32(windowHeight) / windowWidth, 0.1, 100.0)
 		projLoc := gl.GetUniformLocation(ourShader.ID,
 			gl.Str("projection" + "\x00"))
@@ -257,13 +252,11 @@ func main() {
 		
 		
 		// Camera / view transformation
-		view := mgl32.LookAtV(cameraPos,
-			cameraPos.Add(cameraFront), cameraUp)
-	
+		view := ourCamera.GetViewMatrix()
+		
 		viewLoc := gl.GetUniformLocation(ourShader.ID,
 			gl.Str("view" + "\x00"))		
 		gl.UniformMatrix4fv(viewLoc, 1, false, &view[0])
-
 
 		// Drawing loop
 		gl.BindVertexArray(VAO)
@@ -296,37 +289,17 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 		window.SetShouldClose(true)
 	}
  
-	cameraSpeed := 20.0 * deltaTime
-	if key == glfw.KeyW && action == glfw.Press || heldW {
-		cameraPos = cameraPos.Add(cameraFront.Mul(cameraSpeed))
-		heldW = true
+	if key == glfw.KeyW && action == glfw.Press {
+		ourCamera.ProcessKeyboard(camera.FORWARD, deltaTime)
 	}
-	if key == glfw.KeyS && action == glfw.Press || heldS {
-		cameraPos = cameraPos.Sub(cameraFront.Mul(cameraSpeed))
-		heldS = true
+	if key == glfw.KeyS && action == glfw.Press {
+		ourCamera.ProcessKeyboard(camera.BACKWARD, deltaTime)
 	}
-	if key == glfw.KeyA && action == glfw.Press || heldA {
-		cameraPos = cameraPos.Sub(cameraFront.Cross(
-			cameraUp).Normalize().Mul(cameraSpeed))
-		heldA = true
+	if key == glfw.KeyA && action == glfw.Press {
+		ourCamera.ProcessKeyboard(camera.LEFT, deltaTime)
 	}
-	if key == glfw.KeyD && action == glfw.Press || heldD {
-		cameraPos = cameraPos.Add(cameraFront.Cross(
-			cameraUp).Normalize().Mul(cameraSpeed))
-		heldD = true
-	}
-
-	if key == glfw.KeyW && action == glfw.Release {
-		heldW = false
-	}
-	if key == glfw.KeyS && action == glfw.Release {
-		heldS = false
-	}
-	if key == glfw.KeyA && action == glfw.Release {
-		heldA = false
-	}
-	if key == glfw.KeyD && action == glfw.Release {
-		heldD = false
+	if key == glfw.KeyD && action == glfw.Press {
+		ourCamera.ProcessKeyboard(camera.RIGHT, deltaTime)
 	}
 }
 
@@ -343,42 +316,12 @@ func mouse_callback(w *glfw.Window, xPos float64, yPos float64) {
 
 	lastX = float32(xPos)
 	lastY = float32(yPos)
-
-	sensitvity := float32(0.1)
-	xOffset *= float32(sensitvity)
-	yOffset *= float32(sensitvity)
-
-	yaw += xOffset
-	pitch += yOffset
-
-	if pitch > 89.0 {
-		pitch = 89.0
-	} 
-	if pitch < -89.0 {
-		pitch = -89.0
-	}
-
-	front := mgl32.Vec3{0, 0, 0}
-	front[0] = float32(math.Cos(float64(mgl32.DegToRad(yaw))) *
-		math.Cos(float64(mgl32.DegToRad(pitch))))
-	front[1] = float32(math.Sin(float64(mgl32.DegToRad(pitch))))
-    front[2] = float32(math.Sin(float64(mgl32.DegToRad(yaw))) *
-		math.Cos(float64(mgl32.DegToRad(pitch))))
-
 		
-	cameraFront = front.Normalize()
+	ourCamera.ProcessMouseMovement(xOffset, yOffset, true)
 }
 
 func scroll_callback(w *glfw.Window, xOffset float64, yOffset float64) {
-	if fov >= 1.0 && fov <= 45.0 {
-		fov -= float32(yOffset)
-	}
-	if fov <= 1.0 {
-		fov = 1.0
-	}
-	if fov >= 45.0 {
-		fov = 45.0
-	}
+	ourCamera.ProcessMouseScroll(float32(yOffset))
 }
 
 func framebuffer_size_callback(w *glfw.Window, width int, height int) {
