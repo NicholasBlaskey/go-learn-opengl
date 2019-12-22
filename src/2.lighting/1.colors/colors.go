@@ -112,42 +112,47 @@ func createBuffers() (uint32, uint32, uint32) {
 	return VBO, cubeVAO, lightVAO
 }
 
+func configGLFW() *glfw.Window { 
+    if err := glfw.Init(); err != nil {
+        log.Fatalln("failed to init glfw:", err)
+    }
+
+    //glfw.WindowHint(glfw.Resizable, glfw.False)
+    glfw.WindowHint(glfw.ContextVersionMajor, 4)
+    glfw.WindowHint(glfw.ContextVersionMinor, 1)
+    glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+    glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+    window, err := glfw.CreateWindow(
+        windowWidth, windowHeight, "Hello!", nil, nil)
+
+    if err != nil {
+        panic(err)
+    }
+    window.MakeContextCurrent()
+
+    // Add in auto resizing
+    window.SetFramebufferSizeCallback(
+        glfw.FramebufferSizeCallback(framebuffer_size_callback))
+    window.SetCursorPosCallback(glfw.CursorPosCallback(mouse_callback))
+    window.SetScrollCallback(glfw.ScrollCallback(scroll_callback))
+
+    // Tell glfw to capture the mouse
+    window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
+         
+    if err := gl.Init(); err != nil {
+        panic(err)
+    }
+    window.SetKeyCallback(keyCallback)
+
+    // Config gl global state
+    gl.Enable(gl.DEPTH_TEST)
+
+	return window
+}
+
 func main() {
-	if err := glfw.Init(); err != nil {
-		log.Fatalln("failed to init glfw:", err)
-	}
+	window := configGLFW()
 	defer glfw.Terminate()
-
-	//glfw.WindowHint(glfw.Resizable, glfw.False)
-	glfw.WindowHint(glfw.ContextVersionMajor, 4)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-	window, err := glfw.CreateWindow(
-		windowWidth, windowHeight, "Hello!", nil, nil)
-
-	if err != nil {
-		panic(err)
-	}
-	window.MakeContextCurrent()
-
-	// Add in auto resizing
-	window.SetFramebufferSizeCallback(
-		glfw.FramebufferSizeCallback(framebuffer_size_callback))
-	window.SetCursorPosCallback(glfw.CursorPosCallback(mouse_callback))
-	window.SetScrollCallback(glfw.ScrollCallback(scroll_callback))
-
-	// Tell glfw to capture the mouse
-	window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
-	 	
-	if err := gl.Init(); err != nil {
-		panic(err)
-	}
-	window.SetKeyCallback(keyCallback)
-
-	// Config gl global state
-	gl.Enable(gl.DEPTH_TEST)
-
 	
 	lightingShader := shader.MakeShaders("1.colors.vs", "1.colors.fs")
 	lampShader := shader.MakeShaders("1.lamp.vs", "1.lamp.fs")
