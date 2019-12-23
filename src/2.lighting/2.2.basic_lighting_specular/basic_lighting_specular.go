@@ -36,6 +36,12 @@ var lastFrame float32 = 0.0
 // Lighting
 var lightPos mgl32.Vec3 = mgl32.Vec3{1.2, 1.0, 2.0}
 
+// Controls
+var heldW bool = false;
+var heldA bool = false;
+var heldS bool = false;
+var heldD bool = false;
+
 func init() {
 	runtime.LockOSThread()
 }
@@ -177,7 +183,7 @@ func main() {
 		currentFrame := float32(glfw.GetTime())
 		deltaTime = currentFrame - lastFrame
 		lastFrame = currentFrame
-
+			
 		// Poll events and call their registered callbacks
 		glfw.PollEvents()
 
@@ -230,18 +236,36 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 		window.SetShouldClose(true)
 	}
  
-	if key == glfw.KeyW && action == glfw.Press {
+	if key == glfw.KeyW && action == glfw.Press || heldW {
 		ourCamera.ProcessKeyboard(camera.FORWARD, deltaTime)
+		heldW = true
 	}
-	if key == glfw.KeyS && action == glfw.Press {
+	if key == glfw.KeyS && action == glfw.Press || heldS {
 		ourCamera.ProcessKeyboard(camera.BACKWARD, deltaTime)
+		heldS = true
 	}
-	if key == glfw.KeyA && action == glfw.Press {
+	if key == glfw.KeyA && action == glfw.Press || heldA {
 		ourCamera.ProcessKeyboard(camera.LEFT, deltaTime)
+		heldA = true
 	}
-	if key == glfw.KeyD && action == glfw.Press {
+	if key == glfw.KeyD && action == glfw.Press || heldD {
 		ourCamera.ProcessKeyboard(camera.RIGHT, deltaTime)
+		heldD = true
 	}
+
+	if key == glfw.KeyW && action == glfw.Release {
+		heldW = false
+	}
+	if key == glfw.KeyS && action == glfw.Release {
+		heldS = false
+	}
+	if key == glfw.KeyA && action == glfw.Release {
+		heldA = false
+	}
+	if key == glfw.KeyD && action == glfw.Release {
+		heldD = false
+	}
+	
 }
 
 func mouse_callback(w *glfw.Window, xPos float64, yPos float64) {
