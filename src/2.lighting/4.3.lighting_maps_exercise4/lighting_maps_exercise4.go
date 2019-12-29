@@ -166,27 +166,14 @@ func createBuffers() (uint32, uint32, uint32) {
 	return VBO, cubeVAO, lightVAO
 }
 
-func main() {
-	window := initGLFW()
-	defer glfw.Terminate()
-	
-	lightingShader := shader.MakeShaders("4.1.lighting_maps.vs",
-		"4.1.lighting_maps.fs")
-	lampShader := shader.MakeShaders("4.1.lamp.vs", "4.1.lamp.fs")
-	
-	VBO, cubeVAO, lightVAO := createBuffers()
+func loadTexture(filePath string) uint32 {
+	var textureID uint32
+	gl.GenTextures(1, &textureID)
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
-	// Optional to delete all of our objects
-	defer gl.DeleteVertexArrays(1, &VBO)
-	defer gl.DeleteVertexArrays(1, &cubeVAO)
-	defer gl.DeleteVertexArrays(1, &lightVAO)
+	data := texture.ImageLoad(filePath)
 
-	var diffuseMap uint32
-    gl.GenTextures(1, &diffuseMap)
-
-    data := texture.ImageLoad("../../../resources/textures/container2.png")
-
-    gl.BindTexture(gl.TEXTURE_2D, diffuseMap)
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
     gl.TexImage2D(
         gl.TEXTURE_2D,
         0,
@@ -206,8 +193,38 @@ func main() {
         gl.LINEAR_MIPMAP_LINEAR)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
+	return textureID
+}
+
+func main() {
+	window := initGLFW()
+	defer glfw.Terminate()
+	
+	lightingShader := shader.MakeShaders("4.3.lighting_maps.vs",
+		"4.3.lighting_maps.fs")
+	lampShader := shader.MakeShaders("4.3.lamp.vs", "4.3.lamp.fs")
+	
+	VBO, cubeVAO, lightVAO := createBuffers()
+
+	// Optional to delete all of our objects
+	defer gl.DeleteVertexArrays(1, &VBO)
+	defer gl.DeleteVertexArrays(1, &cubeVAO)
+	defer gl.DeleteVertexArrays(1, &lightVAO)
+
+	diffuseMap := loadTexture("../../../resources/textures/container2.png")
+	specularMap := loadTexture(
+		"../../../resources/textures/container2_specular.png")
+	emissionsMap := loadTexture(
+		"../../../resources/textures/matrix.jpg")
+
+	log.Println(diffuseMap)
+	log.Println(specularMap)
+	log.Println(emissionsMap)
+	
 	lightingShader.Use()
 	lightingShader.SetInt("material.diffuse", 0)
+	lightingShader.SetInt("material.specular", 1)
+	lightingShader.SetInt("material.emission", 2)
 	
 	// Program loop
 	for !window.ShouldClose() {
@@ -234,10 +251,7 @@ func main() {
 		lightingShader.SetVec3("light.specular", mgl32.Vec3{1.0, 1.0, 1.0})
 
 		// Material properties
-		lightingShader.SetVec3("material.specular",
-			mgl32.Vec3{0.5, 0.5, 0.5})
 		lightingShader.SetFloat("material.shininess", 64.0)
-
 			
 		// View / projection transformations
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
@@ -253,6 +267,11 @@ func main() {
 		// Activate textures
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, diffuseMap)
+		gl.ActiveTexture(gl.TEXTURE1)
+		gl.BindTexture(gl.TEXTURE_2D, specularMap)
+		gl.ActiveTexture(gl.TEXTURE2)
+		gl.BindTexture(gl.TEXTURE_2D, emissionsMap)
+		
 		
 		// Render the cube
 		gl.BindVertexArray(cubeVAO)

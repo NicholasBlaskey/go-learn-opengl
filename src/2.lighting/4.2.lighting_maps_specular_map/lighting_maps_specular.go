@@ -25,7 +25,7 @@ var ourCamera camera.Camera = camera.NewCamera(
 	0.0, 0.0, 3.0, // pos xyz
 	0.0, 1.0, 0.0, // up xyz
 	-90.0, 0.0,    // Yaw and pitch
-	5.0, 45.0, 0.1)   // Speed, zoom, and mouse sensitivity 
+	45.0, 45.0, 0.1)   // Speed, zoom, and mouse sensitivity 
 var firstMouse bool = true
 var lastX float32   = windowWidth / 2
 var lastY float32   = windowHeight / 2
@@ -217,8 +217,8 @@ func main() {
 		"../../../resources/textures/container2_specular.png")
 
 	lightingShader.Use()
-	lightingShader.SetInt("materials.diffuse", 0)
-	lightingShader.SetInt("materials.specular", 1)
+	lightingShader.SetInt("material.diffuse", 0)
+	lightingShader.SetInt("material.specular", 1)
 	
 	// Program loop
 	for !window.ShouldClose() {
