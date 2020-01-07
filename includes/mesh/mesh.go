@@ -5,12 +5,12 @@ package mesh
 import(
 	//"log"
 	"unsafe"
-	//"io/ioutil"
+	"strconv"
 
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/go-gl/gl/v4.1-core/gl"
 
-	//"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
+	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 )
 
 
@@ -23,9 +23,9 @@ type Vertex struct {
 }
 
 type Texture struct {
-	id       uint32
-	textType string
-	path     string
+	id          uint32
+	textureType string
+	path        string
 }
 	
 type Mesh struct {
@@ -43,6 +43,49 @@ func newMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
 	mesh.setUpMesh()
 
 	return &mesh
+}
+
+func (m *Mesh) Draw(shader shader.Shader) {
+	// Bind appropriate textures
+	var diffuseNr  uint32 = 1
+	var specularNr uint32 = 1
+	var normalNr   uint32 = 1
+	var heightNr   uint32 = 1
+
+	for i := 0; i < len(m.textures); i++ {
+		// Active proper texture unit before binding it
+		gl.ActiveTexture(uint32(gl.TEXTURE0 + int32(i)))
+
+		// retrieve textre number (the n in diffuse_textureN)
+		name := m.textures[i].textureType
+		var number string
+		if name == "texture_diffuse" {
+			number = strconv.Itoa(int(diffuseNr))
+			diffuseNr++
+		} else if name == "texture_specular" {
+			number = strconv.Itoa(int(specularNr))
+			specularNr++
+		} else if name == "texture_normal" {
+			number = strconv.Itoa(int(normalNr))
+			normalNr++
+		} else if name == "texture_height" {
+			number = strconv.Itoa(int(heightNr))
+			heightNr++
+		}
+
+		gl.Uniform1i(gl.GetUniformLocation(
+			shader.ID, gl.Str(name + number + "\x00")), int32(i))
+		gl.BindTexture(gl.TEXTURE_2D, m.textures[i].id)
+	}
+
+	// Draw the mesh
+	gl.BindVertexArray(m.VAO)
+	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT,
+		unsafe.Pointer(nil))
+	gl.BindVertexArray(0)
+
+	// Set back to defaults once configed as a good practice
+	gl.ActiveTexture(gl.TEXTURE0)
 }
 
 func (m *Mesh) setUpMesh() {

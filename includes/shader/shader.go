@@ -12,11 +12,11 @@ import(
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-type shader struct {
+type Shader struct {
 	ID uint32 
 }
 
-func MakeShaders(vertexPath string, fragmentPath string) shader {
+func MakeShaders(vertexPath string, fragmentPath string) Shader {
 	// Read the source code into strings
 	vertexCodeBytes, err := ioutil.ReadFile(vertexPath)
 	if err != nil {
@@ -57,14 +57,14 @@ func MakeShaders(vertexPath string, fragmentPath string) shader {
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-	return shader{ID: ID}
+	return Shader{ID: ID}
 }
 
-func (s shader) Use() {
+func (s Shader) Use() {
 	gl.UseProgram(s.ID)
 }
 
-func (s shader) SetBool(name string, value bool) {
+func (s Shader) SetBool(name string, value bool) {
 	var intValue int32 = 0
 	if value {
 		intValue = 1
@@ -74,20 +74,20 @@ func (s shader) SetBool(name string, value bool) {
 		intValue)
 }
 
-func (s shader) SetInt(name string, value int32) {
+func (s Shader) SetInt(name string, value int32) {
 	gl.Uniform1i(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")), value)
 }
 
-func (s shader) SetFloat(name string, value float32) {
+func (s Shader) SetFloat(name string, value float32) {
 	gl.Uniform1f(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")), value)
 }
 
-func (s shader) SetVec3(name string, value mgl32.Vec3) {
+func (s Shader) SetVec3(name string, value mgl32.Vec3) {
 	gl.Uniform3fv(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")),
 		1, &value[0])
 }
 
-func (s shader) SetMat4(name string, value mgl32.Mat4) {
+func (s Shader) SetMat4(name string, value mgl32.Mat4) {
 	gl.UniformMatrix4fv(gl.GetUniformLocation(s.ID, gl.Str(name + "\x00")),
 		1, false, &value[0])
 }
