@@ -20,6 +20,17 @@ package model
 #include <assimp/cimport.h>
 #include <assimp/matrix4x4.h>
 #include <assimp/postprocess.h>
+
+struct aiNode* get_child(struct aiNode* n, unsigned int index)
+{
+	return n->mChildren[index];
+}
+
+struct aiMesh* get_mesh(struct aiScene* s, struct aiNode* n, 
+	unsigned int i) 
+{
+	return s->mMeshes[n->mMeshes[i]];
+}
 */
 import "C"
 
@@ -67,7 +78,7 @@ func (model *Model) loadModel(path string) {
 
 	//log.Println(scene)
 	//log.Printf("%T\n", scene)
-	log.Printf("%+v", scene)
+	//log.Printf("%+v", scene)
 	
 	// Make sure we loaded meshes properly
 	if uintptr(unsafe.Pointer(scene)) == 0 {
@@ -89,31 +100,19 @@ func (model *Model) loadModel(path string) {
 
 func (model *Model) processNode(aiNode *C.struct_aiNode,
 	aiScene *C.struct_aiScene) {
-	
+
+	// Process the current node
 	for i := 0; i < int(aiNode.mNumMeshes); i++ {
-		log.Println(i)
+		// Get mesh just does scene->mMeshes[node->mMeshes[i]]
+		mesh := C.get_mesh(aiScene, aiNode, C.uint(i))
+		model.meshes = append(model.meshes,
+			model.processMesh(mesh, aiScene))
 	}
+	// Call process node on all the children nodes
 	for i := 0; i < int(aiNode.mNumChildren); i++ {
-		log.Printf("%T\n", aiNode.mChildren)
-		//model.processNode(aiNode.mChildren, aiScene)
+		model.processNode(C.get_child(aiNode, C.uint(i)), aiScene)
 	}
 }
-	/*
-	// process each mesh located at the current node
-	for(unsigned int i = 0; i < node->mNumMeshes; i++)
-	{
-		// the node object only contains indices to index the actual objects in the scene. 
-		// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
-		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(processMesh(mesh, scene));
-	}
-	// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
-	for(unsigned int i = 0; i < node->mNumChildren; i++)
-	{
-		processNode(node->mChildren[i], scene);
-	}
-	*/
-//}
 
 // processMesh
 
