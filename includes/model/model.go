@@ -60,6 +60,21 @@ struct aiVector3D* mesh_bitangent_at(struct aiMesh* m, unsigned int index)
 {
 	return &(m->mBitangents[index]);
 }
+
+struct aiFace* get_face(struct aiMesh* m, unsigned int index) 
+{
+	return &(m->mFaces[index]);
+}
+
+unsigned int get_face_indices(struct aiFace* f, unsigned int index) 
+{
+	return f->mIndices[index];
+}
+
+struct aiMaterial* get_material(struct aiScene* s, struct aiMesh* m) 
+{
+	return s->mMaterials[m->mMaterialIndex];
+}
 */
 import "C"
 
@@ -149,7 +164,7 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 
 	// Data to fill
 	var vertices []mesh.Vertex 
-	//var indices  []uint32
+	var indices  []uint32
 	//var textures []mesh.Texture
 
 	// Loop through all of the mesh's vertices
@@ -168,7 +183,7 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		vertex.Normal[1] = float32(cVec.y)
 		vertex.Normal[2] = float32(cVec.z)
 
-		// Texture coords
+		// Texture coords (assuming we only use the first uv channel)
 		if C.has_tex_coords(aiMesh) {
 			cVec = C.mesh_texture_at(aiMesh, C.uint(i))
 			vertex.TexCoords[0] = float32(cVec.x)
@@ -190,26 +205,56 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		vertices = append(vertices, vertex)
 	}
 
-	log.Printf("%+v", vertices)
+	//log.Printf("%+v", vertices)
 
-		/*
-        // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
-        for(unsigned int i = 0; i < mesh->mNumFaces; i++)
-        {
-            aiFace face = mesh->mFaces[i];
-            // retrieve all indices of the face and store them in the indices vector
-            for(unsigned int j = 0; j < face.mNumIndices; j++)
-                indices.push_back(face.mIndices[j]);
-        }
+	// Now handle all the mesh's faces abd retrieve corresponding vertex indices.
+	for i := 0; i < int(aiMesh.mNumFaces); i++ {
+		face := C.get_face(aiMesh, C.uint(i))
+
+		for j := 0; j < int(face.mNumIndices); j++ {
+			// TODO check the result of indices is right due to getting some very
+			// large values 1312808169...2483192576? Could be an issue or could be
+			// intended if something is wrong check back here.
+			indices = append(indices,
+				uint32(C.get_face_indices(face, C.uint(i))))
+		}
+	}
+
+	//log.Printf("%+v", indices)
+
+	// Process materias
+	material := C.get_material(aiScene, aiMesh)
+	// We assume a convention for sampler names in the shaders. Each diffuse
+	// texture should be named as 'texture_diffuseN' where N is a sequential
+	// number ranging from 1 to MAX_SAMPLER_NUMBER. 
+	// Same applies to other texture as the following list summarizes:
+	// diffuse: texture_diffuseN
+	// specular: texture_specularN
+	// normal: texture_normalN
+
+	// 1. diffuse maps
+	diffuseMaps := loadMaterialTextures(material, C.aiTextureType_DIFFUSE,
+		"texture_diffuse")
+	// TODO figure out return type and append it
+	// 2. specular maps
+	speculareMaps := loadMaterialTextures(material, C.aiTextureType_SPECULAR,
+		"texture_specular")
+	// TODO
+	// 3. normal maps
+	normalMaps := loadMaterialTextures(material, C.aiTextureType_HEIGHT,
+		"texture_normal")
+	// TODO
+	// 4. height maps
+	heightMaps := loadMaterialTextures(material, C.aiTextureType_AMBIENT,
+		"texture_height")
+	// TODO
+
+	return mesh.Mesh{vertices: vertices, indices: indices, textures: textures}
+	
+	/*
         // process materials
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];    
-        // we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-        // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
-        // Same applies to other texture as the following list summarizes:
-        // diffuse: texture_diffuseN
-        // specular: texture_specularN
-        // normal: texture_normalN
-
+   
         // 1. diffuse maps
         vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
         textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
