@@ -75,20 +75,26 @@ struct aiMaterial* get_material(struct aiScene* s, struct aiMesh* m)
 {
 	return s->mMaterials[m->mMaterialIndex];
 }
+
+//int get_num_textures(struct aiMaterial* mat, enum aiTextureType type) {
+//	return mat->GetTextureCount(type);
+//}
 */
 import "C"
 
 import(
 	"log"
 	"unsafe"
+	//"math"
 	//"strconv"
 	"strings"
 	
 	//"github.com/go-gl/mathgl/mgl32"
-	//"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/gl/v4.1-core/gl"
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/mesh"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
+	loadTexture "github.com/nicholasblaskey/go-learn-opengl/includes/texture"
 )
 
 type Model struct {
@@ -160,12 +166,12 @@ func (model *Model) processNode(aiNode *C.struct_aiNode,
 }
 
 func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
-	aiScene *C.struct_aiScene)  {
+	aiScene *C.struct_aiScene) *mesh.Mesh {
 
 	// Data to fill
 	var vertices []mesh.Vertex 
 	var indices  []uint32
-	//var textures []mesh.Texture
+	var textures []mesh.Texture
 
 	// Loop through all of the mesh's vertices
 	for i := 0; i < int(aiMesh.mNumVertices); i++ {
@@ -232,24 +238,30 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 	// specular: texture_specularN
 	// normal: texture_normalN
 
+	log.Println(material, "this is not a crash")
+
+	
 	// 1. diffuse maps
-	diffuseMaps := loadMaterialTextures(material, C.aiTextureType_DIFFUSE,
-		"texture_diffuse")
+	diffuseMaps := model.loadMaterialTextures(material,
+		C.aiTextureType_DIFFUSE, "texture_diffuse")
+	log.Println(diffuseMaps)
+	/*
 	// TODO figure out return type and append it
 	// 2. specular maps
-	speculareMaps := loadMaterialTextures(material, C.aiTextureType_SPECULAR,
-		"texture_specular")
+	speculareMaps := model.loadMaterialTextures(material,
+		C.aiTextureType_SPECULAR, "texture_specular")
 	// TODO
 	// 3. normal maps
-	normalMaps := loadMaterialTextures(material, C.aiTextureType_HEIGHT,
-		"texture_normal")
+	normalMaps := model.loadMaterialTextures(material,
+		C.aiTextureType_HEIGHT, "texture_normal")
 	// TODO
 	// 4. height maps
-	heightMaps := loadMaterialTextures(material, C.aiTextureType_AMBIENT,
-		"texture_height")
+	heightMaps := model.loadMaterialTextures(material,
+		C.aiTextureType_AMBIENT, "texture_height")
 	// TODO
-
-	return mesh.Mesh{vertices: vertices, indices: indices, textures: textures}
+	*/
+	
+	return mesh.NewMesh(vertices, indices, textures)
 	
 	/*
         // process materials
@@ -273,18 +285,65 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 	*/
 }
 
-// loadMaterialTextures
+func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
+	textType uint32/**C.enum_aiTextureType*/, typeName string) ([]mesh.Texture){
+
+	var textures []mesh.Texture
+
+	log.Printf("in this func brah %T", textType)
+	
+	textCount := C.aiGetMaterialTextureCount(mat, textType)
+
+
+	//textCount := C.get_num_textures(textType)
+	//textCount := C.GetTextureCount(textType)
+	for i := 0; i < int(textCount); i++ {
+		log.Println(textCount)
+	}
+
+	return textures
+}
+/*
+    {
+        vector<Texture> textures;
+        for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+        {
+            aiString str;
+            mat->GetTexture(type, i, &str);
+            // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
+            bool skip = false;
+            for(unsigned int j = 0; j < textures_loaded.size(); j++)
+            {
+                if(std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0)
+                {
+                    textures.push_back(textures_loaded[j]);
+                    skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+                    break;
+                }
+            }
+            if(!skip)
+            {   // if texture hasn't been loaded already, load it
+                Texture texture;
+                texture.id = TextureFromFile(str.C_Str(), this->directory);
+                texture.type = typeName;
+                texture.path = str.C_Str();
+                textures.push_back(texture);
+                textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
+            }
+        }
+        return textures;
+*/
 
 // Not part of class
 // TextureFromFile
-func TextureFromFile(path string, directory string, gamma bool) {
-	filename := path + directory
+func TextureFromFile(path string, directory string, gamma bool) uint32 {
+	filePath := path + directory
 
 	var textureID uint32
 	gl.GenTextures(1, &textureID)
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
-	data := texture.ImageLoad(filePath)
+	data := loadTexture.ImageLoad(filePath)
 
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
     gl.TexImage2D(

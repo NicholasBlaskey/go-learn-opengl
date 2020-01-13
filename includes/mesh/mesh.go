@@ -37,7 +37,7 @@ type Mesh struct {
 	EBO      uint32
 }
 
-func newMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
+func NewMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
 	// give buffers value of 0 to avoid complaing
 	mesh := Mesh{vertices, indices, textures, 0, 0, 0}
 	mesh.setUpMesh()
