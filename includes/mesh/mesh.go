@@ -23,9 +23,9 @@ type Vertex struct {
 }
 
 type Texture struct {
-	id          uint32
-	textureType string
-	path        string
+	Id          uint32
+	TextureType string
+	Path        string
 }
 	
 type Mesh struct {
@@ -57,7 +57,7 @@ func (m *Mesh) Draw(shader shader.Shader) {
 		gl.ActiveTexture(uint32(gl.TEXTURE0 + int32(i)))
 
 		// retrieve textre number (the n in diffuse_textureN)
-		name := m.textures[i].textureType
+		name := m.textures[i].TextureType
 		var number string
 		if name == "texture_diffuse" {
 			number = strconv.Itoa(int(diffuseNr))
@@ -75,7 +75,7 @@ func (m *Mesh) Draw(shader shader.Shader) {
 
 		gl.Uniform1i(gl.GetUniformLocation(
 			shader.ID, gl.Str(name + number + "\x00")), int32(i))
-		gl.BindTexture(gl.TEXTURE_2D, m.textures[i].id)
+		gl.BindTexture(gl.TEXTURE_2D, m.textures[i].Id)
 	}
 
 	// Draw the mesh

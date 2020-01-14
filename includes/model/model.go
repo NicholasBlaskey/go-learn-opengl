@@ -306,56 +306,55 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 			nil,                              // Texture op
 			nil,                              // Map mode
 			nil)                              // Flags
+		pathAsGoString := C.GoString(&path.data[0])
 
-		log.Println("this |", C.GoString(&path.data[0]), "|")
+
+		// Check to make sure we haven't loaded the texture
+		haveLoaded := false
+		for j := 0; j < len(model.texturesLoaded); j++ {
+			if model.texturesLoaded[j].Path == pathAsGoString {
+				haveLoaded = true
+				break
+			}
+		}
+
+		if !haveLoaded {
+			var texture mesh.Texture
+
+			texture.Id = TextureFromFile(pathAsGoString,
+				model.directory, false)
+			
+			texture.TextureType = typeName
+			texture.Path = pathAsGoString
+			textures = append(textures, texture)
+			model.texturesLoaded = append(model.texturesLoaded, texture)
+		}
 	}
 
+	log.Println(textures, "LOL")
 	return textures
 }
-/*
-    {
-x        vector<Texture> textures;
-x        for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-x        {
-x
-x            aiString str;
-x            mat->GetTexture(type, i, &str);
-x
-            bool skip = false;
-            for(unsigned int j = 0; j < textures_loaded.size(); j++)
-            {
-                if(std::strcmp(
-                          textures_loaded[j].path.data(), str.C_Str()) == 0)
-                {
-                    textures.push_back(textures_loaded[j]);
-                    skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
-                    break;
-                }
-            }
-            if(!skip)
-            {   // if texture hasn't been loaded already, load it
-                Texture texture;
-                texture.id = TextureFromFile(str.C_Str(), this->directory);
-                texture.type = typeName;
-                texture.path = str.C_Str();
-                textures.push_back(texture);
-                textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
-            }
-        }
-        return textures;
-*/
 
 // Not part of class
 // TextureFromFile
 func TextureFromFile(path string, directory string, gamma bool) uint32 {
-	filePath := path + directory
+	
+	filePath := directory + "/" + path
 
+	log.Println(filePath)
 	var textureID uint32
+
+	// Possible issue of null terminating strings?
+	// No lol gl has to be started next time... 
+	// TODO make the model test driver first then keep testing
+	log.Println("before exit", textureID)
 	gl.GenTextures(1, &textureID)
+	log.Println("after exit")
+	
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
 	data := loadTexture.ImageLoad(filePath)
-
+	
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
     gl.TexImage2D(
         gl.TEXTURE_2D,
@@ -369,6 +368,7 @@ func TextureFromFile(path string, directory string, gamma bool) uint32 {
         gl.Ptr(data.Pix))
     gl.GenerateMipmap(gl.TEXTURE_2D)
 
+	
     // Set texture parameters for wrapping
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
