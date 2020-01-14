@@ -290,31 +290,42 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 
 	var textures []mesh.Texture
 
-	log.Printf("in this func brah %T", textType)
-	
 	textCount := C.aiGetMaterialTextureCount(mat, textType)
+	for i := uint32(0); i < uint32(textCount); i++ {
 
+		var path C.struct_aiString
 
-	//textCount := C.get_num_textures(textType)
-	//textCount := C.GetTextureCount(textType)
-	for i := 0; i < int(textCount); i++ {
-		log.Println(textCount)
+		C.aiGetMaterialTexture(
+			mat,                              // Material
+			textType,                         // Type of texture
+			C.uint(i),                        // Index
+			&path,                            // Path to string
+			nil,                              // Texture mapping
+			nil,                              // UV index
+			nil,                              // Blend
+			nil,                              // Texture op
+			nil,                              // Map mode
+			nil)                              // Flags
+
+		log.Println("this |", C.GoString(&path.data[0]), "|")
 	}
 
 	return textures
 }
 /*
     {
-        vector<Texture> textures;
-        for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-        {
-            aiString str;
-            mat->GetTexture(type, i, &str);
-            // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
+x        vector<Texture> textures;
+x        for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+x        {
+x
+x            aiString str;
+x            mat->GetTexture(type, i, &str);
+x
             bool skip = false;
             for(unsigned int j = 0; j < textures_loaded.size(); j++)
             {
-                if(std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0)
+                if(std::strcmp(
+                          textures_loaded[j].path.data(), str.C_Str()) == 0)
                 {
                     textures.push_back(textures_loaded[j]);
                     skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
