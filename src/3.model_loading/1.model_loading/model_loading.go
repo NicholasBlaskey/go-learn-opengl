@@ -73,11 +73,13 @@ func initGLFW() *glfw.Window {
 
     // Tell glfw to capture the mouse
     window.SetInputMode(glfw.CursorMode, glfw.CursorDisabled)
-         
+
+	window.SetKeyCallback(keyCallback)
+
+	
     if err := gl.Init(); err != nil {
         panic(err)
     }
-    window.SetKeyCallback(keyCallback)
 
     // Config gl global state
     gl.Enable(gl.DEPTH_TEST)
@@ -103,8 +105,14 @@ func main() {
 			
 		// Poll events and call their registered callbacks
 		glfw.PollEvents()
-
+		
+		gl.ClearColor(0.05, 0.05, 0.05, 1.0)
+		gl.Clear(gl.COLOR_BUFFER_BIT)
+		gl.Clear(gl.DEPTH_BUFFER_BIT)
+		
 		ourShader.Use()
+
+		log.Println("FRAME PASSED")
 			
 		// View / projection transformations
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
@@ -118,6 +126,7 @@ func main() {
 		model = model.Mul4(mgl32.Scale3D(0.2, 0.2, 0.2))
 		ourShader.SetMat4("model", model)
 		ourModel.Draw(ourShader)
+		//log.Println(ourModel)
 		
 		window.SwapBuffers()
 	}
@@ -125,6 +134,7 @@ func main() {
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 	action glfw.Action, mods glfw.ModifierKey) {
+	
 	// Escape closes window
 	if key == glfw.KeyEscape && action == glfw.Press {
 		window.SetShouldClose(true)
@@ -159,7 +169,6 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 	if key == glfw.KeyD && action == glfw.Release {
 		heldD = false
 	}
-	
 }
 
 func mouse_callback(w *glfw.Window, xPos float64, yPos float64) {
@@ -175,7 +184,7 @@ func mouse_callback(w *glfw.Window, xPos float64, yPos float64) {
 
 	lastX = float32(xPos)
 	lastY = float32(yPos)
-		
+	
 	ourCamera.ProcessMouseMovement(xOffset, yOffset, true)
 }
 

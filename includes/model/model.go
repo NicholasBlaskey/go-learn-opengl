@@ -232,13 +232,13 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 	// Now handle all the mesh's faces abd retrieve corresponding vertex indices.
 	for i := 0; i < int(aiMesh.mNumFaces); i++ {
 		face := C.get_face(aiMesh, C.uint(i))
-
+		
 		for j := 0; j < int(face.mNumIndices); j++ {
 			// TODO check the result of indices is right due to getting some very
 			// large values 1312808169...2483192576? Could be an issue or could be
 			// intended if something is wrong check back here.
 			indices = append(indices,
-				uint32(C.get_face_indices(face, C.uint(i))))
+				uint32(C.get_face_indices(face, C.uint(j))))
 		}
 	}
 
