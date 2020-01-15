@@ -105,19 +105,28 @@ type Model struct {
 }
 
 func NewModel(path string, gamma bool) *Model {
+	log.Println("Start newmodel")
+	
 	model := Model{gammaCorrection: gamma}
 	model.loadModel(path)
 
+	log.Println("end newmodel")
 	return &model
 }
 
 func (model *Model) Draw(shader shader.Shader) {
+	log.Println("Start Draw (model)")
+	
 	for i := 0; i < len(model.meshes); i++ {
 		model.meshes[i].Draw(shader)
 	}
+
+	log.Println("End Draw (model)")
 }
 
 func (model *Model) loadModel(path string) {
+	log.Println("Start load model")
+	
 	cPathString := C.CString(path)
 	defer C.free(unsafe.Pointer(cPathString))
 
@@ -145,12 +154,15 @@ func (model *Model) loadModel(path string) {
 	// Retrieve the directory of the filepath
 	model.directory = path[0:strings.LastIndex(path, "/")]
 
-	model.processNode(scene.mRootNode, scene)	
+	model.processNode(scene.mRootNode, scene)
+
+	log.Println("End load model")
 }
 
 func (model *Model) processNode(aiNode *C.struct_aiNode,
 	aiScene *C.struct_aiScene) {
-
+	log.Println("Start processNode")
+	
 	// Process the current node
 	for i := 0; i < int(aiNode.mNumMeshes); i++ {
 		// Get mesh just does scene->mMeshes[node->mMeshes[i]]
@@ -163,11 +175,15 @@ func (model *Model) processNode(aiNode *C.struct_aiNode,
 	for i := 0; i < int(aiNode.mNumChildren); i++ {
 		model.processNode(C.get_child(aiNode, C.uint(i)), aiScene)
 	}
+
+	log.Println("End processNode")
 }
 
 func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 	aiScene *C.struct_aiScene) *mesh.Mesh {
 
+	log.Println("Start processMesh")
+	
 	// Data to fill
 	var vertices []mesh.Vertex 
 	var indices  []uint32
@@ -211,7 +227,7 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		vertices = append(vertices, vertex)
 	}
 
-	//log.Printf("%+v", vertices)
+	log.Println("Got vertices now onto faces")
 
 	// Now handle all the mesh's faces abd retrieve corresponding vertex indices.
 	for i := 0; i < int(aiMesh.mNumFaces); i++ {
@@ -226,68 +242,39 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		}
 	}
 
-	//log.Printf("%+v", indices)
-
+	log.Println("finished face now onto textures")
+	
 	// Process materias
 	material := C.get_material(aiScene, aiMesh)
-	// We assume a convention for sampler names in the shaders. Each diffuse
-	// texture should be named as 'texture_diffuseN' where N is a sequential
-	// number ranging from 1 to MAX_SAMPLER_NUMBER. 
-	// Same applies to other texture as the following list summarizes:
-	// diffuse: texture_diffuseN
-	// specular: texture_specularN
-	// normal: texture_normalN
-
-	log.Println(material, "this is not a crash")
-
 	
 	// 1. diffuse maps
 	diffuseMaps := model.loadMaterialTextures(material,
 		C.aiTextureType_DIFFUSE, "texture_diffuse")
-	log.Println(diffuseMaps)
-	/*
-	// TODO figure out return type and append it
+	// TODO make sure this isnt overwriting slice values
+	textures = append(textures, diffuseMaps...) 
 	// 2. specular maps
 	speculareMaps := model.loadMaterialTextures(material,
 		C.aiTextureType_SPECULAR, "texture_specular")
-	// TODO
+	textures = append(textures, speculareMaps...)
 	// 3. normal maps
 	normalMaps := model.loadMaterialTextures(material,
 		C.aiTextureType_HEIGHT, "texture_normal")
-	// TODO
+	textures = append(textures, normalMaps...)
 	// 4. height maps
 	heightMaps := model.loadMaterialTextures(material,
 		C.aiTextureType_AMBIENT, "texture_height")
-	// TODO
-	*/
+	textures = append(textures, heightMaps...)
+
+	log.Println("end process mesh")
 	
-	return mesh.NewMesh(vertices, indices, textures)
-	
-	/*
-        // process materials
-        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];    
-   
-        // 1. diffuse maps
-        vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
-        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-        // 2. specular maps
-        vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
-        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-        // 3. normal maps
-        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
-        textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-        // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
-        textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-        
-        // return a mesh object created from the extracted mesh data
-        return Mesh(vertices, indices, textures);
-	*/
+	return mesh.NewMesh(vertices, indices, textures)	
 }
 
 func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 	textType uint32/**C.enum_aiTextureType*/, typeName string) ([]mesh.Texture){
 
+	log.Println("start loadMaterialTextures")
+	
 	var textures []mesh.Texture
 
 	textCount := C.aiGetMaterialTextureCount(mat, textType)
@@ -331,25 +318,23 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 		}
 	}
 
-	log.Println(textures, "LOL")
+	log.Println("end loadMaterialTextures")
+	
 	return textures
 }
 
 // Not part of class
 // TextureFromFile
 func TextureFromFile(path string, directory string, gamma bool) uint32 {
+
+	log.Println("start texturesFromFile")
 	
 	filePath := directory + "/" + path
 
 	log.Println(filePath)
 	var textureID uint32
 
-	// Possible issue of null terminating strings?
-	// No lol gl has to be started next time... 
-	// TODO make the model test driver first then keep testing
-	log.Println("before exit", textureID)
 	gl.GenTextures(1, &textureID)
-	log.Println("after exit")
 	
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
@@ -376,6 +361,9 @@ func TextureFromFile(path string, directory string, gamma bool) uint32 {
         gl.LINEAR_MIPMAP_LINEAR)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 
+	log.Println("end texturesFromFile")
+
+	
 	return textureID
 }
 	

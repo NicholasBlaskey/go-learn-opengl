@@ -3,7 +3,7 @@
 package mesh
 
 import(
-	//"log"
+	"log"
 	"unsafe"
 	"strconv"
 
@@ -38,14 +38,20 @@ type Mesh struct {
 }
 
 func NewMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
+	log.Println("start new mesh")
+
 	// give buffers value of 0 to avoid complaing
 	mesh := Mesh{vertices, indices, textures, 0, 0, 0}
 	mesh.setUpMesh()
 
+	log.Println("end new mesh")
+	
 	return &mesh
 }
 
 func (m *Mesh) Draw(shader shader.Shader) {
+	log.Println("start draw")
+	
 	// Bind appropriate textures
 	var diffuseNr  uint32 = 1
 	var specularNr uint32 = 1
@@ -86,9 +92,13 @@ func (m *Mesh) Draw(shader shader.Shader) {
 
 	// Set back to defaults once configed as a good practice
 	gl.ActiveTexture(gl.TEXTURE0)
+
+	log.Println("end draw")
 }
 
 func (m *Mesh) setUpMesh() {
+	log.Println("start setUpMesh")
+	
 	vertexSize := int(unsafe.Sizeof(m.vertices[0]))
 	
 	// Create buffers / arrays
@@ -101,11 +111,11 @@ func (m *Mesh) setUpMesh() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.VBO)
 	// Take advantage of sequential struct layout
 	gl.BufferData(gl.ARRAY_BUFFER, len(m.vertices) * vertexSize, 
-		gl.Ptr(m.vertices[0]), gl.STATIC_DRAW)
+		gl.Ptr(m.vertices), gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.EBO)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.indices) * 4,
-		gl.Ptr(m.indices[0]), gl.STATIC_DRAW)
+		gl.Ptr(m.indices), gl.STATIC_DRAW)
 
 	// Set the vertex attrib pointers
 	// Vertex positions
@@ -130,5 +140,7 @@ func (m *Mesh) setUpMesh() {
 		gl.PtrOffset(int(unsafe.Offsetof(m.vertices[0].Bitangent))))
 
 	gl.BindVertexArray(0)
+
+	log.Println("setUpMesh end")
 }
 
