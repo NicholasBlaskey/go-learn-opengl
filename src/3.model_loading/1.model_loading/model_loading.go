@@ -13,7 +13,7 @@ import(
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
-	"github.com/nicholasblaskey/go-learn-opengl/includes/texture"
+	loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
 )
 
 // Settings
@@ -85,155 +85,15 @@ func initGLFW() *glfw.Window {
 	return window
 }
 
-
-func createBuffers() (uint32, uint32, uint32) {
-	vertices := []float32{
-		// positions          // normals           // texture coords
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
-         0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  0.0,
-         0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  1.0,
-         0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  1.0,
-        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  1.0,
-        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
-
-        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  0.0,
-         0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  0.0,
-         0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  1.0,
-         0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0,  1.0,
-        -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  1.0,
-        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,  0.0,  0.0,
-
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0,  0.0,
-        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,  1.0,  1.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0,  1.0,
-        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,  0.0,  1.0,
-        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,  0.0,  0.0,
-        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,  1.0,  0.0,
-
-         0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0,  0.0,
-         0.5,  0.5, -0.5,  1.0,  0.0,  0.0,  1.0,  1.0,
-         0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0,  1.0,
-         0.5, -0.5, -0.5,  1.0,  0.0,  0.0,  0.0,  1.0,
-         0.5, -0.5,  0.5,  1.0,  0.0,  0.0,  0.0,  0.0,
-         0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0,  0.0,
-
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0,  1.0,
-         0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  1.0,  1.0,
-         0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0,  0.0,
-         0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  1.0,  0.0,
-        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,  0.0,  1.0,
-
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0,  1.0,
-         0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  1.0,  1.0,
-         0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0,  0.0,
-         0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0,  0.0,
-        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  0.0,  0.0,
-        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0,  1.0,
-	}
-			
-	var VBO, cubeVAO uint32		
-	gl.GenVertexArrays(1, &cubeVAO)
-	gl.GenBuffers(1, &VBO)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices) * 4, gl.Ptr(vertices),
-		gl.STATIC_DRAW)
-
-	gl.BindVertexArray(cubeVAO)
-	
-	// Specify our position attribute
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 8 * 4, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-	// Now specify our normal attribute
-	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 8 * 4,
-		gl.PtrOffset(3 * 4))
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, 8 * 4,
-		gl.PtrOffset(6 * 4))
-	gl.EnableVertexAttribArray(2)
-	
-	var lightVAO uint32
-	gl.GenVertexArrays(1, &lightVAO)
-	gl.BindVertexArray(lightVAO)
-	
-	// Now configure the light VBO (we already have bound it with the previous one)
-	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 8 * 4, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(0)
-	
-	return VBO, cubeVAO, lightVAO
-}
-
-func loadTexture(filePath string) uint32 {
-	var textureID uint32
-	gl.GenTextures(1, &textureID)
-	gl.BindTexture(gl.TEXTURE_2D, textureID)
-
-	data := texture.ImageLoad(filePath)
-
-	gl.BindTexture(gl.TEXTURE_2D, textureID)
-    gl.TexImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        int32(data.Rect.Size().X),
-        int32(data.Rect.Size().Y),
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        gl.Ptr(data.Pix))
-    gl.GenerateMipmap(gl.TEXTURE_2D)
-
-    // Set texture parameters for wrapping
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
-        gl.LINEAR_MIPMAP_LINEAR)
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-
-	return textureID
-}
-
 func main() {
 	window := initGLFW()
 	defer glfw.Terminate()
 	
-	lightingShader := shader.MakeShaders("5.1.light_casters.vs",
-		"5.1.light_casters.fs")
-	lampShader := shader.MakeShaders("5.1.lamp.vs", "5.1.lamp.fs")
-	
-	VBO, cubeVAO, lightVAO := createBuffers()
+	ourShader := shader.MakeShaders("1.model_loading.vs",
+		"1.model_loading.fs")
+	ourModel := loadModel.NewModel(
+		"../../../resources/objects/nanosuit/nanosuit.obj", false)
 
-	// Optional to delete all of our objects
-	defer gl.DeleteVertexArrays(1, &VBO)
-	defer gl.DeleteVertexArrays(1, &cubeVAO)
-	defer gl.DeleteVertexArrays(1, &lightVAO)
-
-	cubePosition := []mgl32.Vec3{
-		mgl32.Vec3{0.0, 0.0, 0.0},
-		mgl32.Vec3{ 2.0,  5.0, -15.0},
-        mgl32.Vec3{-1.5, -2.2, -2.5},
-        mgl32.Vec3{-3.8, -2.0, -12.3},
-        mgl32.Vec3{ 2.4, -0.4, -3.5},
-        mgl32.Vec3{-1.7,  3.0, -7.5},
-        mgl32.Vec3{ 1.3, -2.0, -2.5},
-        mgl32.Vec3{ 1.5,  2.0, -2.5},
-        mgl32.Vec3{ 1.5,  0.2, -1.5},
-        mgl32.Vec3{-1.3,  1.0, -1.5},
-	}
-
-	diffuseMap := loadTexture("../../../resources/textures/container2.png")
-	specularMap := loadTexture(
-		"../../../resources/textures/container2_specular.png")
-
-	lightingShader.Use()
-	lightingShader.SetInt("material.diffuse", 0)
-	lightingShader.SetInt("material.specular", 1)
-
-	lampShader.Use() // dont need this
-	
 	// Program loop
 	for !window.ShouldClose() {
 		// Pre frame logic
@@ -244,64 +104,20 @@ func main() {
 		// Poll events and call their registered callbacks
 		glfw.PollEvents()
 
-		gl.ClearColor(0.1, 0.1, 0.1, 1.0)
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-		gl.Clear(gl.DEPTH_BUFFER_BIT)
-	
-		// Set lighting uniforms
-		lightingShader.Use()
-		lightingShader.SetVec3("light.direction",
-			mgl32.Vec3{-0.2, -1.0, -0.3})
-		lightingShader.SetVec3("viewPos", ourCamera.Position)
-
-		// Light properties
-		lightingShader.SetVec3("light.ambient", mgl32.Vec3{0.2, 0.2, 0.2})
-		lightingShader.SetVec3("light.diffuse", mgl32.Vec3{0.5, 0.5, 0.5})
-		lightingShader.SetVec3("light.specular", mgl32.Vec3{1.0, 1.0, 1.0})
-
-		// Material properties
-		lightingShader.SetFloat("material.shininess", 64.0)
+		ourShader.Use()
 			
 		// View / projection transformations
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
 			float32(windowHeight) / windowWidth, 0.1, 100.0)
 		view := ourCamera.GetViewMatrix()
-		lightingShader.SetMat4("projection", projection)
-		lightingShader.SetMat4("view", view)
-		
-		
-		// Activate textures
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, diffuseMap)
-		gl.ActiveTexture(gl.TEXTURE1)
-		gl.BindTexture(gl.TEXTURE_2D, specularMap)
+		ourShader.SetMat4("projection", projection)
+		ourShader.SetMat4("view", view)
 
-		// World transformation
-		model := mgl32.Ident4()
-		lightingShader.SetMat4("model", model)
-		
-		// Render the cubes
-		gl.BindVertexArray(cubeVAO)
-		for i := 0; i < 10; i++ {
-			model := mgl32.Translate3D(
-				cubePosition[i][0], cubePosition[i][1], cubePosition[i][2])
-			model = model.Mul4(mgl32.HomogRotate3D(mgl32.DegToRad(
-				float32(20.0 * i)), mgl32.Vec3{1.0, 0.3, 0.5}))
-			lightingShader.SetMat4("model", model)
-
-			gl.DrawArrays(gl.TRIANGLES, 0, 36)
-		}
-
-		// No need to render the lamp object due to lighting being directional
-		// Draw the lamp object
-		//lampShader.Use()
-		//lampShader.SetMat4("projection", projection)
-		//lampShader.SetMat4("view", view)
-		//model = mgl32.Translate3D(lightPos[0], lightPos[1], lightPos[2])
-		//model = model.Mul4(mgl32.Scale3D(0.2, 0.2, 0.2))
-		//lampShader.SetMat4("model", model)
-		//gl.BindVertexArray(lightVAO)
-		//gl.DrawArrays(gl.TRIANGLES, 0, 36)
+		// Render the model
+		model := mgl32.Translate3D(0.0, -1.75, 0)
+		model = model.Mul4(mgl32.Scale3D(0.2, 0.2, 0.2))
+		ourShader.SetMat4("model", model)
+		ourModel.Draw(ourShader)
 		
 		window.SwapBuffers()
 	}
