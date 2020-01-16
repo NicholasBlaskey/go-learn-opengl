@@ -3,7 +3,6 @@
 package mesh
 
 import(
-	"log"
 	"unsafe"
 	"strconv"
 
@@ -38,20 +37,14 @@ type Mesh struct {
 }
 
 func NewMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
-	log.Println("start new mesh")
-
 	// give buffers value of 0 to avoid complaing
 	mesh := Mesh{vertices, indices, textures, 0, 0, 0}
 	mesh.setUpMesh()
 
-	log.Println("end new mesh")
-	
 	return &mesh
 }
 
 func (m *Mesh) Draw(shader shader.Shader) {
-	log.Println("start draw")
-	
 	// Bind appropriate textures
 	var diffuseNr  uint32 = 1
 	var specularNr uint32 = 1
@@ -83,7 +76,7 @@ func (m *Mesh) Draw(shader shader.Shader) {
 			shader.ID, gl.Str(name + number + "\x00")), int32(i))
 		gl.BindTexture(gl.TEXTURE_2D, m.textures[i].Id)
 	}
-
+	
 	// Draw the mesh
 	gl.BindVertexArray(m.VAO)
 	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT,
@@ -92,15 +85,11 @@ func (m *Mesh) Draw(shader shader.Shader) {
 
 	// Set back to defaults once configed as a good practice
 	gl.ActiveTexture(gl.TEXTURE0)
-
-	log.Println("end draw")
 }
 
-func (m *Mesh) setUpMesh() {
-	log.Println("start setUpMesh")
-	
+func (m *Mesh) setUpMesh() {	
 	vertexSize := int(unsafe.Sizeof(m.vertices[0]))
-	
+
 	// Create buffers / arrays
 	gl.GenVertexArrays(1, &m.VAO)
 	gl.GenBuffers(1, &m.VBO)
@@ -140,7 +129,5 @@ func (m *Mesh) setUpMesh() {
 		gl.PtrOffset(int(unsafe.Offsetof(m.vertices[0].Bitangent))))
 
 	gl.BindVertexArray(0)
-
-	log.Println("setUpMesh end")
 }
 

@@ -83,7 +83,6 @@ struct aiMaterial* get_material(struct aiScene* s, struct aiMesh* m)
 import "C"
 
 import(
-	"log"
 	"unsafe"
 	//"math"
 	//"strconv"
@@ -99,34 +98,25 @@ import(
 
 type Model struct {
 	texturesLoaded  []mesh.Texture
-	meshes          []mesh.Mesh
+	meshes          []*mesh.Mesh
 	directory       string
 	gammaCorrection bool
 }
 
-func NewModel(path string, gamma bool) *Model {
-	log.Println("Start newmodel")
-	
+func NewModel(path string, gamma bool) *Model {	
 	model := Model{gammaCorrection: gamma}
 	model.loadModel(path)
 
-	log.Println("end newmodel")
 	return &model
 }
 
 func (model *Model) Draw(shader shader.Shader) {
-	log.Println("Start Draw (model)")
-	
 	for i := 0; i < len(model.meshes); i++ {
 		model.meshes[i].Draw(shader)
 	}
-
-	log.Println("End Draw (model)")
 }
 
 func (model *Model) loadModel(path string) {
-	log.Println("Start load model")
-	
 	cPathString := C.CString(path)
 	defer C.free(unsafe.Pointer(cPathString))
 
@@ -135,10 +125,6 @@ func (model *Model) loadModel(path string) {
 		C.aiProcess_FlipUVs |
 		C.aiProcess_CalcTangentSpace)
 
-	//log.Println(scene)
-	//log.Printf("%T\n", scene)
-	//log.Printf("%+v", scene)
-	
 	// Make sure we loaded meshes properly
 	if uintptr(unsafe.Pointer(scene)) == 0 {
 		panic("filepath: " + path + "loaded a nil scene")
@@ -150,40 +136,32 @@ func (model *Model) loadModel(path string) {
 		panic("Root node of the scene was nil")
 	}
 	
-	
 	// Retrieve the directory of the filepath
 	model.directory = path[0:strings.LastIndex(path, "/")]
-
+	
 	model.processNode(scene.mRootNode, scene)
-
-	log.Println("End load model")
 }
 
 func (model *Model) processNode(aiNode *C.struct_aiNode,
 	aiScene *C.struct_aiScene) {
-	log.Println("Start processNode")
 	
 	// Process the current node
 	for i := 0; i < int(aiNode.mNumMeshes); i++ {
 		// Get mesh just does scene->mMeshes[node->mMeshes[i]]
 		mesh := C.get_mesh(aiScene, aiNode, C.uint(i))
-		//model.meshes = append(model.meshes,
-		//	model.processMesh(mesh, aiScene))
-		model.processMesh(mesh, aiScene)
+
+		model.meshes = append(model.meshes,
+			model.processMesh(mesh, aiScene))
 	}
 	// Call process node on all the children nodes
 	for i := 0; i < int(aiNode.mNumChildren); i++ {
 		model.processNode(C.get_child(aiNode, C.uint(i)), aiScene)
 	}
-
-	log.Println("End processNode")
 }
 
 func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 	aiScene *C.struct_aiScene) *mesh.Mesh {
 
-	log.Println("Start processMesh")
-	
 	// Data to fill
 	var vertices []mesh.Vertex 
 	var indices  []uint32
@@ -227,8 +205,6 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		vertices = append(vertices, vertex)
 	}
 
-	log.Println("Got vertices now onto faces")
-
 	// Now handle all the mesh's faces abd retrieve corresponding vertex indices.
 	for i := 0; i < int(aiMesh.mNumFaces); i++ {
 		face := C.get_face(aiMesh, C.uint(i))
@@ -242,8 +218,6 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		}
 	}
 
-	log.Println("finished face now onto textures")
-	
 	// Process materias
 	material := C.get_material(aiScene, aiMesh)
 	
@@ -265,21 +239,16 @@ func (model *Model) processMesh(aiMesh *C.struct_aiMesh,
 		C.aiTextureType_AMBIENT, "texture_height")
 	textures = append(textures, heightMaps...)
 
-	log.Println("end process mesh")
-	
 	return mesh.NewMesh(vertices, indices, textures)	
 }
 
 func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 	textType uint32/**C.enum_aiTextureType*/, typeName string) ([]mesh.Texture){
 
-	log.Println("start loadMaterialTextures")
-	
 	var textures []mesh.Texture
 
 	textCount := C.aiGetMaterialTextureCount(mat, textType)
 	for i := uint32(0); i < uint32(textCount); i++ {
-
 		var path C.struct_aiString
 
 		C.aiGetMaterialTexture(
@@ -294,7 +263,6 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 			nil,                              // Map mode
 			nil)                              // Flags
 		pathAsGoString := C.GoString(&path.data[0])
-
 
 		// Check to make sure we haven't loaded the texture
 		haveLoaded := false
@@ -317,25 +285,16 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 			model.texturesLoaded = append(model.texturesLoaded, texture)
 		}
 	}
-
-	log.Println("end loadMaterialTextures")
-	
 	return textures
 }
 
 // Not part of class
 // TextureFromFile
 func TextureFromFile(path string, directory string, gamma bool) uint32 {
-
-	log.Println("start texturesFromFile")
-	
 	filePath := directory + "/" + path
 
-	log.Println(filePath)
 	var textureID uint32
-
 	gl.GenTextures(1, &textureID)
-	
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
 	data := loadTexture.ImageLoad(filePath)
@@ -353,16 +312,12 @@ func TextureFromFile(path string, directory string, gamma bool) uint32 {
         gl.Ptr(data.Pix))
     gl.GenerateMipmap(gl.TEXTURE_2D)
 
-	
     // Set texture parameters for wrapping
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
         gl.LINEAR_MIPMAP_LINEAR)
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-
-	log.Println("end texturesFromFile")
-
 	
 	return textureID
 }
