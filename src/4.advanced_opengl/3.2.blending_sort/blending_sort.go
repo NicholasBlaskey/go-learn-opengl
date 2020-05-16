@@ -45,29 +45,6 @@ var heldA bool = false;
 var heldS bool = false;
 var heldD bool = false;
 
-//https://golang.org/pkg/sort/ using this example (Example (sortkeys))
-type By func(w1, w2 *mgl32.Vec3) bool
-func (by By) Sort(windows []mgl32.Vec3) {
-	ws := &windowSorter{
-		windows: []mgl32.Vec3,
-		by:      by,
-	}
-	sort.Sort(ws)
-}
-type windowSorter struct {
-	planets []mgl32.Vec3
-	by      func(w1, w1 *mlg32.Vec3) bool
-}
-func (w *windowSorter) Len() int {
-	return len(w.windows)
-}
-func (s *windowSorter) Swap(i, j int) {
-	s.windows[i], s.windows[j] = s.windows[j], s.windows[i]
-}
-func (s *windowSorter) Less(i, j int) bool {
-	return s.by(&s.windows[i], &s.windows[j])
-}
-
 func init() {
 	runtime.LockOSThread()
 }
@@ -109,7 +86,8 @@ func initGLFW() *glfw.Window {
     // Config gl global state
     gl.Enable(gl.DEPTH_TEST)
 	gl.Enable(gl.BLEND)
-
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	
 	return window
 }
 
@@ -228,7 +206,7 @@ func main() {
 	window := initGLFW()
 	defer glfw.Terminate()
 	
-	ourShader := shader.MakeShaders("3.1.blending.vs", "3.1.blending.fs")
+	ourShader := shader.MakeShaders("3.2.blending.vs", "3.2.blending.fs")
 	cubeVAO, cubeVBO, planeVAO, planeVBO, transparentVAO, transparentVBO := makeCubeBuffers()
 
 	defer gl.DeleteVertexArrays(1, &cubeVAO)
@@ -256,12 +234,7 @@ func main() {
 		mgl32.Vec3{0.5, 0.0, -0.6},
 	}
 
-	decreasingDistance := func(w1, w2 *mgl32.Vec3) bool {
-		return w1.Sub(ourCamera.Position).Len() < w2.Sub(ourCamera.Position).Len()
-	}
 
-	By(decreasingDistance).Sort(windows)
-	fmt.Println(windows)
 	
 	// shader config
 	ourShader.Use()
@@ -303,7 +276,13 @@ func main() {
 		ourShader.SetMat4("model", mgl32.Ident4())
 		gl.DrawArrays(gl.TRIANGLES, 0, 6)
 		gl.BindVertexArray(0)
-		// Vegetation
+
+		sort.Slice(windows, func(i, j int) bool {
+			return windows[i].Sub(ourCamera.Position).Len() >
+				windows[j].Sub(ourCamera.Position).Len()
+		})
+
+		
 		gl.BindVertexArray(transparentVAO)
 		gl.BindTexture(gl.TEXTURE_2D, transparentTexture)
 		for i := 0; i < len(windows); i++ {
