@@ -60,6 +60,66 @@ func MakeShaders(vertexPath string, fragmentPath string) Shader {
 	return Shader{ID: ID}
 }
 
+func MakeGeomShaders(vertexPath, fragmentPath, geoPath string) Shader {
+	// Read the source code into strings
+	vertexCodeBytes, err := ioutil.ReadFile(vertexPath)
+	if err != nil {
+		panic(err)
+	}
+	vertexCode := string(vertexCodeBytes)
+
+	fragmentCodeBytes, err := ioutil.ReadFile(fragmentPath)
+	if err != nil {
+		panic(err)
+	}
+	fragmentCode := string(fragmentCodeBytes)
+
+	geoCodeBytes, err := ioutil.ReadFile(geoPath)
+	if err != nil {
+		panic(err)
+	}
+	geoCode := string(geoCodeBytes)
+
+	// Compile the shaders
+	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
+	shaderSource, freeVertex := gl.Strs(vertexCode + "\x00")
+	defer freeVertex()
+	gl.ShaderSource(vertexShader, 1, shaderSource, nil)
+	gl.CompileShader(vertexShader)
+	checkCompileErrors(vertexShader, "VERTEX")
+	
+	fragmentShader := gl.CreateShader(gl.FRAGMENT_SHADER)
+	shaderSource, freeFragment := gl.Strs(fragmentCode + "\x00")
+	defer freeFragment()
+	gl.ShaderSource(fragmentShader, 1, shaderSource, nil)
+	gl.CompileShader(fragmentShader)
+	checkCompileErrors(fragmentShader, "FRAGMENT")
+
+	geoShader := gl.CreateShader(gl.GEOMETRY_SHADER)
+	shaderSource, freeGeo := gl.Strs(geoCode + "\x00")
+	defer freeGeo()
+	gl.ShaderSource(geoShader, 1, shaderSource, nil)
+	gl.CompileShader(geoShader)
+	checkCompileErrors(geoShader, "GEOMETRY")
+	
+	// Create a shader program
+	ID := gl.CreateProgram()
+	gl.AttachShader(ID, vertexShader)
+	gl.AttachShader(ID, fragmentShader)
+	gl.AttachShader(ID, geoShader)
+	gl.LinkProgram(ID)
+
+	checkCompileErrors(ID, "PROGRAM")
+
+	// Delete shaders
+	gl.DeleteShader(vertexShader)
+	gl.DeleteShader(fragmentShader)
+	gl.DeleteShader(geoShader)
+	
+	return Shader{ID: ID}
+}
+
+
 func (s Shader) Use() {
 	gl.UseProgram(s.ID)
 }
