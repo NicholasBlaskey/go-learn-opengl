@@ -6,8 +6,6 @@ package main
 import(
 	"runtime"
 	"log"
-	"math/rand"
-	"math"
 	
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -15,12 +13,11 @@ import(
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
-	loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
 )
 
 // Settings
-const windowWidth  = 800
-const windowHeight = 600
+const windowWidth  = 1280
+const windowHeight = 720
 
 // Camera
 var ourCamera camera.Camera = camera.NewCamera(
@@ -59,7 +56,9 @@ func initGLFW() *glfw.Window {
     glfw.WindowHint(glfw.ContextVersionMinor, 1)
     glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
     glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-    window, err := glfw.CreateWindow(
+
+	glfw.WindowHint(glfw.Samples, 4) // For anti-aliasing
+	window, err := glfw.CreateWindow(
         windowWidth, windowHeight, "Hello!", nil, nil)
 
     if err != nil {
@@ -85,54 +84,81 @@ func initGLFW() *glfw.Window {
 
     // Config gl global state
     gl.Enable(gl.DEPTH_TEST)
+	gl.Enable(gl.MULTISAMPLE)
 
 	return window
+}
+
+func makeCubeBuffers() (uint32, uint32) {
+	cubeVertices := []float32{
+        // positions       
+        -0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5,  0.5, -0.5,
+         0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+        -0.5, -0.5,  0.5,
+
+        -0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5,  0.5,
+        -0.5,  0.5,  0.5,
+
+         0.5,  0.5,  0.5,
+         0.5,  0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5,  0.5,  0.5,
+
+        -0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+        -0.5, -0.5,  0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5,  0.5, -0.5,
+         0.5,  0.5, -0.5,
+         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5,
+	}
+	// cube VAO
+	var cubeVBO, cubeVAO uint32		
+	gl.GenVertexArrays(1, &cubeVAO)
+	gl.GenBuffers(1, &cubeVBO)
+	gl.BindVertexArray(cubeVAO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, cubeVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(cubeVertices) * 4,
+		gl.Ptr(cubeVertices), gl.STATIC_DRAW)
+	gl.EnableVertexAttribArray(0)	
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, gl.PtrOffset(0))
+	gl.BindVertexArray(0)
+
+	return cubeVAO, cubeVBO
 }
 
 func main() {
 	window := initGLFW()
 	defer glfw.Terminate()
 	
-	ourShader := shader.MakeShaders("10.2.instancing.vs",
-		"10.2.instancing.fs")
-	rock := loadModel.NewModel(
-		"../../../resources/objects/rock/rock.obj", false)
-	planet := loadModel.NewModel(
-		"../../../resources/objects/planet/planet.obj", false)
+	ourShader := shader.MakeShaders("11.1.anti_aliasing.vs",
+		"11.1.anti_aliasing.fs")
+	cubeVAO, cubeVBO := makeCubeBuffers()
 
-	// Generate large list of semi random model transform matrices
-	amount := 1000
-	modelMatrices := []mgl32.Mat4{}
-	rand.Seed(int64(glfw.GetTime()))
-	radius := 50.0
-	offset := 2.5
-	for i := 0; i < amount; i++ {
-		angle := float32(i) / float32(amount) * 360.0
-		displacement := float64(rand.Int31() %
-			int32(2 * offset * 100)) / 100.0 - offset
-		x := float32(math.Sin(float64(mgl32.DegToRad(angle))) *
-			radius + displacement)
-		displacement = float64(rand.Int31() %
-			int32(2 * offset * 100)) / 100.0 - offset
-		y := float32(displacement * 0.4)
-		displacement = float64(rand.Int31() %
-			int32(2 * offset * 100)) / 100.0 - offset
-		z := float32(math.Cos(float64(mgl32.DegToRad(angle))) *
-			radius + displacement)
-		model := mgl32.Translate3D(x, y, z)
-
-		scale := float32(rand.Int31() % 20) / 100.0 + 0.05
-		model = model.Mul4(mgl32.Scale3D(scale, scale, scale))
-
-		rotAngle := float32(mgl32.DegToRad(float32(rand.Int31() % 360)))
-		model = model.Mul4(
-			mgl32.HomogRotate3D(rotAngle, mgl32.Vec3{0.4, 0.6, 0.8}))
-
-		modelMatrices = append(modelMatrices, model)
-	}
-	
-	// Draw in polygon mode
-	//gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	defer gl.DeleteVertexArrays(1, &cubeVAO)
+	defer gl.DeleteVertexArrays(1, &cubeVBO)
 	
 	// Program loop
 	for !window.ShouldClose() {
@@ -144,29 +170,20 @@ func main() {
 		// Poll events and call their registered callbacks
 		glfw.PollEvents()
 		
-		gl.ClearColor(0.05, 0.05, 0.05, 1.0)
+		gl.ClearColor(0.1, 0.1, 0.1, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 		gl.Clear(gl.DEPTH_BUFFER_BIT)
 		
-		ourShader.Use()
-			
-		// Configure transformation matrices
+		ourShader.Use()	
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight) / windowWidth, 0.1, 1000.0)
+			float32(windowHeight) / windowWidth, 0.1, 100.0)
 		view := ourCamera.GetViewMatrix()
 		ourShader.SetMat4("projection", projection)
 		ourShader.SetMat4("view", view)
+		ourShader.SetMat4("model", mgl32.Ident4())
 
-		// Render the planet
-		model := mgl32.Translate3D(0.0, -3.0, 0)
-		model = model.Mul4(mgl32.Scale3D(4.0, 4.0, 4.0))
-		ourShader.SetMat4("model", model)
-		planet.Draw(ourShader)
-
-		for i := 0; i < amount; i++ {
-			ourShader.SetMat4("model", modelMatrices[i])
-			rock.Draw(ourShader)
-		}
+		gl.BindVertexArray(cubeVAO)
+		gl.DrawArrays(gl.TRIANGLES, 0, 36)
 		
 		window.SwapBuffers()
 	}

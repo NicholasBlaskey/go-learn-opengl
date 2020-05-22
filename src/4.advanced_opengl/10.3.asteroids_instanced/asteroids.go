@@ -108,7 +108,7 @@ func main() {
 	amount := 10000
 	modelMatrices := []mgl32.Mat4{}
 	rand.Seed(int64(glfw.GetTime()))
-	radius := 50.0
+	radius := 150.0
 	offset := 25.0
 	for i := 0; i < amount; i++ {
 		angle := float32(i) / float32(amount) * 360.0
@@ -191,7 +191,7 @@ func main() {
 		
 		// Configure transformation matrices
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight) / windowWidth, 0.1, 100.0)
+			float32(windowHeight) / windowWidth, 0.1, 1000.0)
 		view := ourCamera.GetViewMatrix()
 		asteroidShader.Use()
 		asteroidShader.SetMat4("projection", projection)
