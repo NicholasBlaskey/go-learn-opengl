@@ -29,7 +29,7 @@ type Texture struct {
 	
 type Mesh struct {
 	vertices []Vertex
-	indices  []uint32
+	Indices  []uint32
 	textures []Texture
 	VAO      uint32
 	VBO      uint32
@@ -79,7 +79,7 @@ func (m *Mesh) Draw(shader shader.Shader) {
 	
 	// Draw the mesh
 	gl.BindVertexArray(m.VAO)
-	gl.DrawElements(gl.TRIANGLES, int32(len(m.indices)), gl.UNSIGNED_INT,
+	gl.DrawElements(gl.TRIANGLES, int32(len(m.Indices)), gl.UNSIGNED_INT,
 		unsafe.Pointer(nil))
 	gl.BindVertexArray(0)
 
@@ -103,8 +103,8 @@ func (m *Mesh) setUpMesh() {
 		gl.Ptr(m.vertices), gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.EBO)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.indices) * 4,
-		gl.Ptr(m.indices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.Indices) * 4,
+		gl.Ptr(m.Indices), gl.STATIC_DRAW)
 
 	// Set the vertex attrib pointers
 	// Vertex positions

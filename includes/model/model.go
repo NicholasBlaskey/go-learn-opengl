@@ -97,8 +97,8 @@ import(
 )
 
 type Model struct {
-	texturesLoaded  []mesh.Texture
-	meshes          []*mesh.Mesh
+	TexturesLoaded  []mesh.Texture
+	Meshes          []*mesh.Mesh
 	directory       string
 	gammaCorrection bool
 }
@@ -111,8 +111,8 @@ func NewModel(path string, gamma bool) *Model {
 }
 
 func (model *Model) Draw(shader shader.Shader) {
-	for i := 0; i < len(model.meshes); i++ {
-		model.meshes[i].Draw(shader)
+	for i := 0; i < len(model.Meshes); i++ {
+		model.Meshes[i].Draw(shader)
 	}
 }
 
@@ -150,7 +150,7 @@ func (model *Model) processNode(aiNode *C.struct_aiNode,
 		// Get mesh just does scene->mMeshes[node->mMeshes[i]]
 		mesh := C.get_mesh(aiScene, aiNode, C.uint(i))
 
-		model.meshes = append(model.meshes,
+		model.Meshes = append(model.Meshes,
 			model.processMesh(mesh, aiScene))
 	}
 	// Call process node on all the children nodes
@@ -266,8 +266,8 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 
 		// Check to make sure we haven't loaded the texture
 		haveLoaded := false
-		for j := 0; j < len(model.texturesLoaded); j++ {
-			if model.texturesLoaded[j].Path == pathAsGoString {
+		for j := 0; j < len(model.TexturesLoaded); j++ {
+			if model.TexturesLoaded[j].Path == pathAsGoString {
 				haveLoaded = true
 				break
 			}
@@ -282,7 +282,7 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 			texture.TextureType = typeName
 			texture.Path = pathAsGoString
 			textures = append(textures, texture)
-			model.texturesLoaded = append(model.texturesLoaded, texture)
+			model.TexturesLoaded = append(model.TexturesLoaded, texture)
 		}
 	}
 	return textures
