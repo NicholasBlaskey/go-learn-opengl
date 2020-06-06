@@ -3,16 +3,17 @@
 
 package main
 
-import(
-	"runtime"
+import (
 	"log"
+	"math"
+	"runtime"
+	"unsafe"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"unsafe"
-	"math"
 )
 
-const windowWidth  = 800
+const windowWidth = 800
 const windowHeight = 600
 
 var vertexShaderSource = `
@@ -61,7 +62,7 @@ func compileShaders() []uint32 {
 			(*uint8)(unsafe.Pointer(&infoLog)))
 		log.Fatalln("Vertex shader failed", "\n", string(infoLog[:512]))
 	}
-	
+
 	gl.GetShaderiv(fragmentShader, gl.COMPILE_STATUS, &success)
 	if success != 1 {
 		var infoLog [512]byte
@@ -95,7 +96,6 @@ func linkShaders(shaders []uint32) uint32 {
 		gl.DeleteShader(shader)
 	}
 
-
 	return program
 }
 
@@ -115,18 +115,18 @@ func createTriangleVAO() uint32 {
 	gl.BindVertexArray(VAO)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices) * 4, gl.Ptr(vertices),
+	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices),
 		gl.STATIC_DRAW)
 
 	// Specifies the format of the vertex input
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, gl.PtrOffset(0))
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, gl.PtrOffset(0))
 	gl.EnableVertexAttribArray(0)
 
 	// Unbind our vertex array so we don't mess with it later
 	gl.BindVertexArray(0)
 
 	// Optional to delete VBO
-	gl.DeleteBuffers(1, &VBO);
+	gl.DeleteBuffers(1, &VBO)
 
 	return VAO
 }
@@ -157,8 +157,7 @@ func main() {
 	// Add in auto resizing
 	window.SetFramebufferSizeCallback(
 		glfw.FramebufferSizeCallback(framebuffer_size_callback))
-	
-	
+
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
@@ -182,11 +181,11 @@ func main() {
 		gl.UseProgram(shaderProgram)
 
 		// Update the shading uniform
-		greenValue := float32(math.Sin(glfw.GetTime())) / 2 + .5
+		greenValue := float32(math.Sin(glfw.GetTime()))/2 + .5
 		vertexColorLoc := gl.GetUniformLocation(shaderProgram,
 			gl.Str("ourColor\x00"))
-		gl.Uniform4f(vertexColorLoc, 0, greenValue, 0, 1)  
-		
+		gl.Uniform4f(vertexColorLoc, 0, greenValue, 0, 1)
+
 		gl.BindVertexArray(VAO)
 		gl.DrawArrays(gl.TRIANGLES, 0, 3)
 		gl.BindVertexArray(0)
@@ -195,7 +194,7 @@ func main() {
 	}
 
 	// Optional to delete VAO
-	gl.DeleteVertexArrays(1, &VAO);
+	gl.DeleteVertexArrays(1, &VAO)
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
@@ -209,4 +208,3 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 func framebuffer_size_callback(w *glfw.Window, width int, height int) {
 	gl.Viewport(0, 0, int32(width), int32(height))
 }
-

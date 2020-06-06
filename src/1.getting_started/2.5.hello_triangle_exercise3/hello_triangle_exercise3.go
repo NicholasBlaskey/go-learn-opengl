@@ -3,15 +3,16 @@
 
 package main
 
-import(
-	"runtime"
+import (
 	"log"
+	"runtime"
+	"unsafe"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"unsafe"
 )
 
-const windowWidth  = 800
+const windowWidth = 800
 const windowHeight = 600
 
 var vertexShaderSource = `
@@ -76,7 +77,6 @@ func compileShaders() []uint32 {
 			(*uint8)(unsafe.Pointer(&infoLog)))
 		log.Fatalln("Vertex shader failed", "\n", string(infoLog[:512]))
 	}
-	
 
 	gl.GetShaderiv(fragmentShaderOrange, gl.COMPILE_STATUS, &success)
 	if success != 1 {
@@ -85,7 +85,7 @@ func compileShaders() []uint32 {
 			(*uint8)(unsafe.Pointer(&infoLog)))
 		log.Fatalln("Fragment shader failed", "\n", string(infoLog[:512]))
 	}
-	
+
 	gl.GetShaderiv(fragmentShaderYellow, gl.COMPILE_STATUS, &success)
 	if success != 1 {
 		var infoLog [512]byte
@@ -120,13 +120,12 @@ func linkShaders(shaders []uint32) uint32 {
 		gl.DeleteShader(shader)
 	}
 
-
 	return program
 }
 
 func createTriangleVAO() [2]uint32 {
 	firstTriangle := []float32{
-		-0.9, -0.5, 0.0, // Left 
+		-0.9, -0.5, 0.0, // Left
 		-0.0, -0.5, 0.0, // Right
 		-0.45, 0.5, 0.0, // Top
 	}
@@ -138,18 +137,18 @@ func createTriangleVAO() [2]uint32 {
 	}
 
 	var VAOs, VBOs [2]uint32
-	
+
 	gl.GenVertexArrays(2, &VAOs[0])
 	gl.GenBuffers(2, &VBOs[0])
 
 	// First triangle setup
 	gl.BindVertexArray(VAOs[0])
 	gl.BindBuffer(gl.ARRAY_BUFFER, VBOs[0])
-	gl.BufferData(gl.ARRAY_BUFFER, len(firstTriangle) * 4,
+	gl.BufferData(gl.ARRAY_BUFFER, len(firstTriangle)*4,
 		gl.Ptr(firstTriangle), gl.STATIC_DRAW)
 
 	// Specifies the format of the vertex input
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, gl.PtrOffset(0))
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, gl.PtrOffset(0))
 	gl.EnableVertexAttribArray(0)
 
 	// Unbind our vertex array so we don't mess with it later
@@ -158,18 +157,18 @@ func createTriangleVAO() [2]uint32 {
 	// Second triangle setup
 	gl.BindVertexArray(VAOs[1])
 	gl.BindBuffer(gl.ARRAY_BUFFER, VBOs[1])
-	gl.BufferData(gl.ARRAY_BUFFER, len(secondTriangle) * 4,
+	gl.BufferData(gl.ARRAY_BUFFER, len(secondTriangle)*4,
 		gl.Ptr(secondTriangle), gl.STATIC_DRAW)
 
 	// Specifies the format of the vertex input
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, gl.PtrOffset(0))
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, gl.PtrOffset(0))
 	gl.EnableVertexAttribArray(0)
 
 	// Unbind our vertex array so we don't mess with it later
 	gl.BindVertexArray(0)
-	
+
 	// Optional to delete VBO
-	gl.DeleteBuffers(2, &VBOs[0]);
+	gl.DeleteBuffers(2, &VBOs[0])
 
 	return VAOs
 }
@@ -200,8 +199,7 @@ func main() {
 	// Add in auto resizing
 	window.SetFramebufferSizeCallback(
 		glfw.FramebufferSizeCallback(framebuffer_size_callback))
-	
-	
+
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
@@ -213,7 +211,7 @@ func main() {
 	shaderProgramYellow := linkShaders([]uint32{shaders[0], shaders[2]})
 
 	VAOs := createTriangleVAO()
-	
+
 	// Program loop
 	for !window.ShouldClose() {
 		// Poll events and call their registered callbacks
@@ -237,7 +235,7 @@ func main() {
 	}
 
 	// Optional to delete VAO
-	gl.DeleteVertexArrays(2, &VAOs[0]);
+	gl.DeleteVertexArrays(2, &VAOs[0])
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
@@ -251,4 +249,3 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 func framebuffer_size_callback(w *glfw.Window, width int, height int) {
 	gl.Viewport(0, 0, int32(width), int32(height))
 }
-

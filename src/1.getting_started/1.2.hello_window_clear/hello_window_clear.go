@@ -3,14 +3,15 @@
 
 package main
 
-import(
-	"runtime"
+import (
 	"log"
+	"runtime"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
-const windowWidth  = 800
+const windowWidth = 800
 const windowHeight = 600
 
 func init() {
@@ -39,8 +40,7 @@ func main() {
 	// Add in auto resizing
 	window.SetFramebufferSizeCallback(
 		glfw.FramebufferSizeCallback(framebuffer_size_callback))
-	
-	
+
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}

@@ -1,17 +1,16 @@
-// translated from
+// translated from https://github.com/JoeyDeVries/LearnOpenGL/blob/master/includes/learnopengl/mesh.h
 
 package mesh
 
-import(
-	"unsafe"
+import (
 	"strconv"
+	"unsafe"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 )
-
 
 type Vertex struct {
 	Position  mgl32.Vec3
@@ -26,7 +25,7 @@ type Texture struct {
 	TextureType string
 	Path        string
 }
-	
+
 type Mesh struct {
 	vertices []Vertex
 	Indices  []uint32
@@ -46,10 +45,10 @@ func NewMesh(vertices []Vertex, indices []uint32, textures []Texture) *Mesh {
 
 func (m *Mesh) Draw(shader shader.Shader) {
 	// Bind appropriate textures
-	var diffuseNr  uint32 = 1
+	var diffuseNr uint32 = 1
 	var specularNr uint32 = 1
-	var normalNr   uint32 = 1
-	var heightNr   uint32 = 1
+	var normalNr uint32 = 1
+	var heightNr uint32 = 1
 
 	for i := 0; i < len(m.textures); i++ {
 		// Active proper texture unit before binding it
@@ -73,10 +72,10 @@ func (m *Mesh) Draw(shader shader.Shader) {
 		}
 
 		gl.Uniform1i(gl.GetUniformLocation(
-			shader.ID, gl.Str(name + number + "\x00")), int32(i))
+			shader.ID, gl.Str(name+number+"\x00")), int32(i))
 		gl.BindTexture(gl.TEXTURE_2D, m.textures[i].Id)
 	}
-	
+
 	// Draw the mesh
 	gl.BindVertexArray(m.VAO)
 	gl.DrawElements(gl.TRIANGLES, int32(len(m.Indices)), gl.UNSIGNED_INT,
@@ -87,7 +86,7 @@ func (m *Mesh) Draw(shader shader.Shader) {
 	gl.ActiveTexture(gl.TEXTURE0)
 }
 
-func (m *Mesh) setUpMesh() {	
+func (m *Mesh) setUpMesh() {
 	vertexSize := int(unsafe.Sizeof(m.vertices[0]))
 
 	// Create buffers / arrays
@@ -99,11 +98,11 @@ func (m *Mesh) setUpMesh() {
 	// Load data into vertex buffers
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.VBO)
 	// Take advantage of sequential struct layout
-	gl.BufferData(gl.ARRAY_BUFFER, len(m.vertices) * vertexSize, 
+	gl.BufferData(gl.ARRAY_BUFFER, len(m.vertices)*vertexSize,
 		gl.Ptr(m.vertices), gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.EBO)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.Indices) * 4,
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(m.Indices)*4,
 		gl.Ptr(m.Indices), gl.STATIC_DRAW)
 
 	// Set the vertex attrib pointers
@@ -130,4 +129,3 @@ func (m *Mesh) setUpMesh() {
 
 	gl.BindVertexArray(0)
 }
-
