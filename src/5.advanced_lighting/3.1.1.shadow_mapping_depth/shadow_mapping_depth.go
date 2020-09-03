@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/4.advanced_opengl/1.1.depth_testing/depth_testing.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/5.advanced_lighting/3.1.1.shadow_mapping_depth/shadow_mapping_depth.cpp
 
 package main
 
@@ -17,8 +17,8 @@ import (
 )
 
 // Settings
-const windowWidth = 1280
-const windowHeight = 720
+const windowWidth = 800
+const windowHeight = 600
 
 // Camera
 var ourCamera camera.Camera = camera.NewCamera(
@@ -82,8 +82,6 @@ func initGLFW() *glfw.Window {
 
 	// Config gl global state
 	gl.Enable(gl.DEPTH_TEST)
-	//gl.DepthFunc(gl.BLEND)
-	//gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	return window
 }
@@ -136,6 +134,8 @@ func main() {
 	// Create and config fbo
 	SHADOW_WIDTH, SHADOW_HEIGHT := int32(1024), int32(1024)
 	var depthMap, depthMapFBO uint32
+	gl.GenFramebuffers(1, &depthMapFBO)
+	// Create depth texture
 	gl.GenTextures(1, &depthMap)
 	gl.BindTexture(gl.TEXTURE_2D, depthMap)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, SHADOW_WIDTH,
@@ -169,15 +169,14 @@ func main() {
 		glfw.PollEvents()
 
 		// Render
-		gl.ClearColor(0.05, 0.05, 0.05, 1.0)
+		gl.ClearColor(0.1, 0.1, 0.1, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// 1. Render the depth scene from the point of view as light source
 		nearPlane := float32(1.0)
 		farPlane := float32(7.5)
 		lightProj := mgl32.Ortho(-10.0, 10.0, -10.0, 10.0, nearPlane, farPlane)
-		lightView := mgl32.LookAt(lightPos[0], lightPos[1], lightPos[2],
-			0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+		lightView := mgl32.LookAtV(lightPos, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0.0, 1.0, 0.0})
 		lightSpaceMatrix := lightProj.Mul4(lightView)
 		// Render
 		simpleDepthShader.Use()
@@ -191,40 +190,17 @@ func main() {
 		renderScene(simpleDepthShader, planeVAO)
 		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 
+		// Reset viewport
+		gl.Viewport(0, 0, windowWidth, windowHeight)
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+		// Render depth map to quad for debugging
 		debugDepthQuad.Use()
 		debugDepthQuad.SetFloat("near_plane", nearPlane)
 		debugDepthQuad.SetFloat("far_plane", farPlane)
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, depthMap)
 		renderQuad()
-
-		// Draw objects
-		/*
-			ourShader.Use()
-			projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-				float32(windowHeight)/windowWidth, 0.1, 100.0)
-			view := ourCamera.GetViewMatrix()
-			ourShader.SetMat4("projection", projection)
-			ourShader.SetMat4("view", view)
-			// Set light uniforms
-			gl.Uniform3fv(gl.GetUniformLocation(ourShader.ID, gl.Str("lightPositions\x00")),
-				4, &lightPositions[0][0])
-			gl.Uniform3fv(gl.GetUniformLocation(ourShader.ID, gl.Str("lightColors\x00")),
-				4, &lightCols[0][0])
-			//ourShader.SetVec3("viewPos", ourCamera.Position)
-			//ourShader.SetVec3("lightPos", lightPos)
-			ourShader.SetBool("gamma", gamma)
-			// Floor
-			gl.BindVertexArray(planeVAO)
-			gl.ActiveTexture(gl.TEXTURE0)
-			if gamma {
-				gl.BindTexture(gl.TEXTURE_2D, floorTextureGammaCorrected)
-			} else {
-				gl.BindTexture(gl.TEXTURE_2D, floorTexture)
-			}
-			//ourShader.SetMat4("model", mgl32.Ident4())
-			gl.DrawArrays(gl.TRIANGLES, 0, 6)
-		*/
 
 		window.SwapBuffers()
 	}
@@ -237,7 +213,7 @@ func renderScene(s shader.Shader, planeVAO uint32) {
 	gl.BindVertexArray(planeVAO)
 	gl.DrawArrays(gl.TRIANGLES, 0, 6)
 	// Cubes
-	model = mgl32.Translate3D(-1.0, 0.0, -1.0).Mul4(
+	model = mgl32.Translate3D(0.0, 1.5, 0.0).Mul4(
 		mgl32.Scale3D(0.5, 0.5, 0.5))
 	s.SetMat4("model", model)
 	renderCube()
@@ -247,7 +223,12 @@ func renderScene(s shader.Shader, planeVAO uint32) {
 	s.SetMat4("model", model)
 	renderCube()
 
-	// TODO do rotated cube
+	model = mgl32.Translate3D(-1.0, 0.0, 2.0).Mul4(
+		mgl32.HomogRotate3D(mgl32.DegToRad(60),
+			mgl32.Vec3{1.0, 0.0, 1.0}.Normalize())).Mul4(
+		mgl32.Scale3D(0.25, 0.25, 0.25))
+	s.SetMat4("model", model)
+	renderCube()
 }
 
 var (
@@ -268,52 +249,52 @@ func renderCube() {
 	vertices := []float32{
 		// positions            // normals         // texcoords
 		// back
-		-1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, // bottom-let
+		-1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, // bottom-left
 		1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 1.0, 1.0, // top-right
 		1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 1.0, 0.0, // bottom-right
 		1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 1.0, 1.0, // top-right
-		-1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, // bottom-let
-		-1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 1.0, // top-let
+		-1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, // bottom-left
+		-1.0, 1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 1.0, // top-left
 		// front
-		-1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom-let
+		-1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom-left
 		1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, // bottom-right
 		1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, // top-right
 		1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, // top-right
-		-1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, // top-let
-		-1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom-let
+		-1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, // top-left
+		-1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom-left
 		// left
 		-1.0, 1.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0, // top-right
-		-1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, // top-let
-		-1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, // bottom-let
-		-1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, // bottom-let
+		-1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 1.0, 1.0, // top-left
+		-1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, // bottom-left
+		-1.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, // bottom-left
 		-1.0, -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, // bottom-right
 		-1.0, 1.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0, // top-right
 		// right
-		1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, // top-let
+		1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, // top-left
 		1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 1.0, // bottom-right
 		1.0, 1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top-right
 		1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 1.0, // bottom-right
-		1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, // top-let
-		1.0, -1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, // bottom-let
+		1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, // top-left
+		1.0, -1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, // bottom-left
 		// bottom
 		-1.0, -1.0, -1.0, 0.0, -1.0, 0.0, 0.0, 1.0, // top-right
-		1.0, -1.0, -1.0, 0.0, -1.0, 0.0, 1.0, 1.0, // top-let
-		1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, // bottom-let
-		1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, // bottom-let
+		1.0, -1.0, -1.0, 0.0, -1.0, 0.0, 1.0, 1.0, // top-left
+		1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, // bottom-left
+		1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, // bottom-left
 		-1.0, -1.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, // bottom-right
 		-1.0, -1.0, -1.0, 0.0, -1.0, 0.0, 0.0, 1.0, // top-right
 		// top
-		-1.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0, // top-let
+		-1.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0, // top-left
 		1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom-right
 		1.0, 1.0, -1.0, 0.0, 1.0, 0.0, 1.0, 1.0, // top-right
 		1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom-right
-		-1.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0, // top-let
-		-1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, // bottom-let
+		-1.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0, // top-left
+		-1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, // bottom-left
 	}
 	gl.GenVertexArrays(1, &cubeVAO)
 	gl.GenBuffers(1, &cubeVBO)
 	gl.BindVertexArray(cubeVAO)
-	gl.BindBuffer(gl.ARRAY_BUFFER, quadVBO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, cubeVBO)
 	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4,
 		gl.Ptr(vertices), gl.STATIC_DRAW)
 	gl.EnableVertexAttribArray(0)
