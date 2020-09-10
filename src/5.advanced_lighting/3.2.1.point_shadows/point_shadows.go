@@ -126,6 +126,7 @@ func main() {
 	ourShader := shader.MakeShaders("3.2.1.point_shadows.vs", "3.2.1.point_shadows.fs")
 	simpleDepthShader := shader.MakeGeomShaders("3.2.1.point_shadows_depth.vs",
 		"3.2.1.point_shadows_depth.fs", "3.2.1.point_shadows_depth.gs")
+
 	planeVAO, planeVBO := makeCubeBuffers()
 	defer gl.DeleteVertexArrays(1, &planeVAO)
 	defer gl.DeleteVertexArrays(1, &planeVBO)
@@ -144,8 +145,8 @@ func main() {
 		gl.TexImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+i, 0, gl.DEPTH_COMPONENT,
 			SHADOW_WIDTH, SHADOW_HEIGHT, 0, gl.DEPTH_COMPONENT, gl.FLOAT, nil)
 	}
-	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE)
@@ -184,7 +185,7 @@ func main() {
 		nearPlane := float32(1.0)
 		farPlane := float32(25.0)
 		shadowProj := mgl32.Perspective(mgl32.DegToRad(90.0),
-			float32(windowHeight)/windowWidth, nearPlane, farPlane)
+			float32(SHADOW_WIDTH)/float32(SHADOW_HEIGHT), nearPlane, farPlane)
 		shadowTransforms := []mgl32.Mat4{
 			shadowProj.Mul4(mgl32.LookAtV(lightPos,
 				lightPos.Add(mgl32.Vec3{1.0, 0.0, 0.0}), mgl32.Vec3{0.0, -1.0, 0.0})),
@@ -218,7 +219,7 @@ func main() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 		ourShader.Use()
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight)/windowWidth, 0.1, 100.0)
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
 		view := ourCamera.GetViewMatrix()
 		ourShader.SetMat4("projection", projection)
 		ourShader.SetMat4("view", view)
@@ -230,7 +231,7 @@ func main() {
 		gl.ActiveTexture(gl.TEXTURE0)
 		gl.BindTexture(gl.TEXTURE_2D, woodTexture)
 		gl.ActiveTexture(gl.TEXTURE1)
-		gl.BindTexture(gl.TEXTURE_2D, depthCubemap)
+		gl.BindTexture(gl.TEXTURE_CUBE_MAP, depthCubemap)
 		renderScene(ourShader, planeVAO)
 
 		window.SwapBuffers()
