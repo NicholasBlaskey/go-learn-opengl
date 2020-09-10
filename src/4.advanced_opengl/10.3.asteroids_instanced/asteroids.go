@@ -189,7 +189,7 @@ func main() {
 
 		// Configure transformation matrices
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight)/windowWidth, 0.1, 1000.0)
+			float32(windowWidth)/windowHeight, 0.1, 1000.0)
 		view := ourCamera.GetViewMatrix()
 		asteroidShader.Use()
 		asteroidShader.SetMat4("projection", projection)

@@ -166,7 +166,7 @@ func main() {
 		// Draw objects
 		ourShader.Use()
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight)/windowWidth, 0.1, 100.0)
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
 		view := ourCamera.GetViewMatrix()
 		ourShader.SetMat4("projection", projection)
 		ourShader.SetMat4("view", view)

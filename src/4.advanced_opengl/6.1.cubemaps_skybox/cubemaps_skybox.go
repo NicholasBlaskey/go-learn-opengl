@@ -259,7 +259,7 @@ func main() {
 		model := mgl32.Ident4()
 		view := ourCamera.GetViewMatrix()
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight)/windowWidth, 0.1, 100.0)
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
 		ourShader.SetMat4("projection", projection)
 		ourShader.SetMat4("view", view)
 		ourShader.SetMat4("model", model)

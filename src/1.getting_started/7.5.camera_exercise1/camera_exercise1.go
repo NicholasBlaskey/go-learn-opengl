@@ -242,7 +242,7 @@ func main() {
 		ourShader.Use()
 
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-			float32(windowHeight)/windowWidth, 0.1, 100.0)
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
 		projLoc := gl.GetUniformLocation(ourShader.ID,
 			gl.Str("projection"+"\x00"))
 		gl.UniformMatrix4fv(projLoc, 1, false, &projection[0])

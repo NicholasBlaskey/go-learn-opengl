@@ -221,7 +221,7 @@ func main() {
 		// Create our matrixes to transform with
 		view := mgl32.Translate3D(0.0, 0.0, -3.0)
 		projection := mgl32.Perspective(mgl32.DegToRad(45.0),
-			float32(windowHeight)/windowWidth, 0.1, 100.0)
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
 
 		// Get the matrix location and set the matrix in shader program
 		viewLoc := gl.GetUniformLocation(ourShader.ID,

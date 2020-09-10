@@ -188,7 +188,7 @@ func main() {
 
 	// Store the project matrix (not using zoom so only need to do it once)
 	projection := mgl32.Perspective(mgl32.DegToRad(45.0),
-		float32(windowHeight)/windowWidth, 0.1, 100.0)
+		float32(windowWidth)/windowHeight, 0.1, 100.0)
 	gl.BindBuffer(gl.UNIFORM_BUFFER, uboMatrices)
 	gl.BufferSubData(gl.UNIFORM_BUFFER, 0, sizeOfMat4, unsafe.Pointer(&projection[0]))
 	gl.BindBuffer(gl.UNIFORM_BUFFER, 0)

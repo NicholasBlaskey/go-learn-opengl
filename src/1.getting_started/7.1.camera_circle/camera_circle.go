@@ -202,7 +202,7 @@ func main() {
 
 	// Create and set our project matrix in advance since it will rarely change
 	projection := mgl32.Perspective(mgl32.DegToRad(45.0),
-		float32(windowHeight)/windowWidth, 0.1, 100.0)
+		float32(windowWidth)/windowHeight, 0.1, 100.0)
 	projLoc := gl.GetUniformLocation(ourShader.ID,
 		gl.Str("projection"+"\x00"))
 	gl.UniformMatrix4fv(projLoc, 1, false, &projection[0])

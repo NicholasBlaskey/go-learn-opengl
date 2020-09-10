@@ -6,9 +6,12 @@
 package model
 
 /*
-#cgo CPPFLAGS: -I/mingw64/include -std=c99
-#cgo LDFLAGS: -L/mingw64/lib -lassimp -lz -lstdc++
+// for linux
+#cgo pkg-config: assimp
 
+// For windows
+//#cgo CPPFLAGS: -I/mingw64/include -std=c99
+//#cgo LDFLAGS: -L/mingw64/lib -lassimp -lz -lstdc++
 
 #include <stdio.h>
 #include <stdlib.h>
