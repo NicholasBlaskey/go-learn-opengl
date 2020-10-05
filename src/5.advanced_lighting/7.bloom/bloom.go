@@ -106,7 +106,7 @@ func main() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, hdrFBO)
 	// Create depth texture
 	colorBuffers := make([]uint32, 2)
-	gl.GenTextures(1, &colorBuffers[0])
+	gl.GenTextures(2, &colorBuffers[0])
 	for i, colorBuffer := range colorBuffers {
 		gl.BindTexture(gl.TEXTURE_2D, colorBuffer)
 		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, windowWidth, windowHeight,
@@ -119,6 +119,7 @@ func main() {
 		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+uint32(i),
 			gl.TEXTURE_2D, colorBuffer, 0)
 	}
+
 	// Create and attach depth buffer (renderbuffer)
 	var rboDepth uint32
 	gl.GenRenderbuffers(1, &rboDepth)
@@ -174,6 +175,7 @@ func main() {
 	ourShader.SetInt("diffuseTexture", 0)
 	shaderBlur.Use()
 	shaderBlur.SetInt("image", 0)
+	shaderBloomFinal.Use()
 	shaderBloomFinal.SetInt("scene", 0)
 	shaderBloomFinal.SetInt("bloomBlur", 1)
 
@@ -188,7 +190,7 @@ func main() {
 		glfw.PollEvents()
 
 		// Render
-		gl.ClearColor(0.1, 0.1, 0.1, 1.0)
+		gl.ClearColor(0.0, 0.0, 0.0, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// 1. Render the scene into the floating point framebuffer
@@ -259,11 +261,12 @@ func main() {
 		shaderLight.SetMat4("projection", projection)
 		shaderLight.SetMat4("view", view)
 		for i := 0; i < len(lightPositions); i++ {
-			mgl32.Translate3D(lightPositions[i][0],
+			model := mgl32.Translate3D(lightPositions[i][0],
 				lightPositions[i][1], lightPositions[i][2]).Mul4(
 				mgl32.Scale3D(0.25, 0.25, 0.25))
-			ourShader.SetMat4("model", model)
-			ourShader.SetVec3("lightColor", lightColors[i])
+			shaderLight.SetMat4("model", model)
+			shaderLight.SetVec3("lightColor", lightColors[i])
+			renderCube()
 		}
 		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 
@@ -318,7 +321,6 @@ func main() {
 		} else {
 			fmt.Println("bloom is off and exposure is", exposure)
 		}
-		renderQuad()
 
 		window.SwapBuffers()
 	}
