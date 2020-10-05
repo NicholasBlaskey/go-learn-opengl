@@ -116,7 +116,7 @@ func main() {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 		// Attach texture to frame buffer
-		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+i,
+		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0+uint32(i),
 			gl.TEXTURE_2D, colorBuffer, 0)
 	}
 	// Create and attach depth buffer (renderbuffer)
@@ -126,7 +126,7 @@ func main() {
 	gl.RenderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT, windowWidth, windowHeight)
 	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rboDepth)
 	// tell OpenGL which color attachments we will be using for rendering
-	attachments := uint32{gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1}
+	attachments := []uint32{gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1}
 	gl.DrawBuffers(2, &attachments[0])
 	// Chck if frame buffer is complete
 	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
@@ -143,7 +143,7 @@ func main() {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, pingpongFBO[i])
 		gl.BindTexture(gl.TEXTURE_2D, pingpongColorbuffers[i])
 		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F,
-			screenWidth, screenHeight, 0, gl.RGBA, gl.FLOAT, nil)
+			windowWidth, windowHeight, 0, gl.RGBA, gl.FLOAT, nil)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -151,31 +151,31 @@ func main() {
 		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
 			gl.TEXTURE_2D, pingpongColorbuffers[i], 0)
 		if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-			pnaic("Ping pong frame buffer failed to complete")
+			panic("Ping pong frame buffer failed to complete")
 		}
 	}
 
-	// Need to change code below
-
 	// Lighting info
 	lightPositions := []mgl32.Vec3{
-		mgl32.Vec3{0.0, 0.0, 49.5},
-		mgl32.Vec3{-1.4, -1.9, 9.0},
-		mgl32.Vec3{0.0, -1.8, 4.0},
-		mgl32.Vec3{0.8, -1.7, 6.0},
+		mgl32.Vec3{0.0, 0.5, 1.5},
+		mgl32.Vec3{-4.0, 0.5, -3.0},
+		mgl32.Vec3{3.0, 0.5, 1.0},
+		mgl32.Vec3{-0.8, 2.4, -1.0},
 	}
 	lightColors := []mgl32.Vec3{
-		mgl32.Vec3{200.0, 200.0, 200.0},
-		mgl32.Vec3{0.1, 0.0, 0.0},
-		mgl32.Vec3{0.0, 0.0, 0.2},
-		mgl32.Vec3{0.0, 0.1, 0.0},
+		mgl32.Vec3{5.0, 5.0, 5.0},
+		mgl32.Vec3{10.0, 0.0, 0.0},
+		mgl32.Vec3{0.0, 0.0, 15.0},
+		mgl32.Vec3{0.0, 5.0, 0.0},
 	}
 
 	// shader config
 	ourShader.Use()
 	ourShader.SetInt("diffuseTexture", 0)
-	hdrShader.Use()
-	ourShader.SetInt("hdrBuffer", 0)
+	shaderBlur.Use()
+	shaderBlur.SetInt("image", 0)
+	shaderBloomFinal.SetInt("scene", 0)
+	shaderBloomFinal.SetInt("bloomBlur", 1)
 
 	// Program loop
 	for !window.ShouldClose() {
@@ -193,94 +193,135 @@ func main() {
 
 		// 1. Render the scene into the floating point framebuffer
 		gl.BindFramebuffer(gl.FRAMEBUFFER, hdrFBO)
-		{
-			gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-			ourShader.Use()
-			projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
-				float32(windowWidth)/windowHeight, 0.1, 100.0)
-			view := ourCamera.GetViewMatrix()
-			ourShader.SetMat4("projection", projection)
-			ourShader.SetMat4("view", view)
-			gl.ActiveTexture(gl.TEXTURE0)
-			gl.BindTexture(gl.TEXTURE_2D, woodTexture)
-			// Set the lighting uniforms
-			for i := 0; i < len(lightPositions); i++ {
-				ourShader.SetVec3(fmt.Sprintf("lights[%d].Position", i), lightPositions[i])
-				ourShader.SetVec3(fmt.Sprintf("lights[%d].Color", i), lightColors[i])
-			}
-			ourShader.SetVec3("viewPos", ourCamera.Position)
-			// Render the tunnel
-			model := mgl32.Translate3D(0.0, 0.0, 25.0).Mul4(
-				mgl32.Scale3D(2.5, 2.5, 27.5))
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+		ourShader.Use()
+		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
+			float32(windowWidth)/windowHeight, 0.1, 100.0)
+		view := ourCamera.GetViewMatrix()
+		ourShader.SetMat4("projection", projection)
+		ourShader.SetMat4("view", view)
+		gl.ActiveTexture(gl.TEXTURE0)
+		gl.BindTexture(gl.TEXTURE_2D, woodTexture)
+		// Set the lighting uniforms
+		for i := 0; i < len(lightPositions); i++ {
+			ourShader.SetVec3(fmt.Sprintf("lights[%d].Position", i), lightPositions[i])
+			ourShader.SetVec3(fmt.Sprintf("lights[%d].Color", i), lightColors[i])
+		}
+		ourShader.SetVec3("viewPos", ourCamera.Position)
+
+		// Create one large cube that acts as the floor
+		model := mgl32.Translate3D(0.0, -1.0, 0.0).Mul4(
+			mgl32.Scale3D(12.5, 0.5, 12.5))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		// Then create multiple cubes as scenery
+		gl.BindTexture(gl.TEXTURE_2D, containerTexture)
+		model = mgl32.Translate3D(0.0, 1.5, 0.0).Mul4(
+			mgl32.Scale3D(0.5, 0.5, 0.5))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		model = mgl32.Translate3D(2.0, 0.0, 1.0).Mul4(
+			mgl32.Scale3D(0.5, 0.5, 0.5))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		model = mgl32.Translate3D(-1.0, -1.0, 2.0).Mul4(
+			mgl32.HomogRotate3D(
+				mgl32.DegToRad(60.0),
+				mgl32.Vec3{1.0, 0.0, 1.0}.Normalize()))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		model = mgl32.Translate3D(0.0, 2.7, 4.0).Mul4(
+			mgl32.HomogRotate3D(
+				mgl32.DegToRad(23.0),
+				mgl32.Vec3{1.0, 0.0, 1.0}.Normalize())).Mul4(
+			mgl32.Scale3D(1.25, 1.25, 1.25))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		model = mgl32.Translate3D(-2.0, 1.0, -3.0).Mul4(
+			mgl32.HomogRotate3D(
+				mgl32.DegToRad(124.0),
+				mgl32.Vec3{1.0, 0.0, 1.0}.Normalize()))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		model = mgl32.Translate3D(-3.0, 0.0, 0.0).Mul4(
+			mgl32.Scale3D(0.5, 0.5, 0.5))
+		ourShader.SetMat4("model", model)
+		renderCube()
+
+		// Finally show all the light sources as bright cubes
+		shaderLight.Use()
+		shaderLight.SetMat4("projection", projection)
+		shaderLight.SetMat4("view", view)
+		for i := 0; i < len(lightPositions); i++ {
+			mgl32.Translate3D(lightPositions[i][0],
+				lightPositions[i][1], lightPositions[i][2]).Mul4(
+				mgl32.Scale3D(0.25, 0.25, 0.25))
 			ourShader.SetMat4("model", model)
-			ourShader.SetBool("inverse_normals", true)
-			renderCube()
+			ourShader.SetVec3("lightColor", lightColors[i])
 		}
 		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 
-		// 2. Now render the floating point color buffer to a 2d quad
+		// 2. Blur bright fragments with a two-pass Gaussian Blur
+		horizontal := true
+		firstIteration := true
+		amount := 10
+		shaderBlur.Use()
+		for i := 0; i < amount; i++ {
+			if horizontal {
+				gl.BindFramebuffer(gl.FRAMEBUFFER, pingpongFBO[1])
+			} else {
+				gl.BindFramebuffer(gl.FRAMEBUFFER, pingpongFBO[0])
+			}
+			shaderBlur.SetBool("horizontal", horizontal)
+
+			if firstIteration {
+				gl.BindTexture(gl.TEXTURE_2D, colorBuffers[1])
+			} else {
+				if horizontal {
+					gl.BindTexture(gl.TEXTURE_2D, pingpongColorbuffers[0])
+				} else {
+					gl.BindTexture(gl.TEXTURE_2D, pingpongColorbuffers[1])
+				}
+			}
+			renderQuad()
+			horizontal = !horizontal
+			if firstIteration { // Possibly we can just make this false
+				firstIteration = false
+			}
+		}
+		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+
+		// 3. Now render the floating point color buffer to a 2d quad
 		// and tonemap HDR colors to default framebuffer's (clamed) color range
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		hdrShader.Use()
+		shaderBloomFinal.Use()
 		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, colorBuffer)
-
-		hdrShader.SetBool("hdr", hdr)
-		if hdr {
-			fmt.Println("Hdr is on and exposure is", exposure)
+		gl.BindTexture(gl.TEXTURE_2D, colorBuffers[0])
+		gl.ActiveTexture(gl.TEXTURE1)
+		if horizontal {
+			gl.BindTexture(gl.TEXTURE_2D, pingpongColorbuffers[0])
 		} else {
-			fmt.Println("Hdr is off and exposure is", exposure)
+			gl.BindTexture(gl.TEXTURE_2D, pingpongColorbuffers[1])
 		}
-		hdrShader.SetFloat("exposure", exposure)
+		shaderBloomFinal.SetBool("bloom", bloom)
+		shaderBloomFinal.SetFloat("exposure", exposure)
+		renderQuad()
+
+		if bloom {
+			fmt.Println("bloom is on and exposure is", exposure)
+		} else {
+			fmt.Println("bloom is off and exposure is", exposure)
+		}
 		renderQuad()
 
 		window.SwapBuffers()
 	}
-}
-
-func renderScene(s shader.Shader, planeVAO uint32) {
-	/*
-			// Floor
-			model := mgl32.Ident4()
-			s.SetMat4("model", model)
-			gl.BindVertexArray(planeVAO)
-		gl.DrawArrays(gl.TRIANGLES, 0, 6)
-	*/
-
-	// Room cube
-	s.SetMat4("model", mgl32.Scale3D(5.0, 5.0, 5.0))
-	gl.Disable(gl.CULL_FACE)
-	s.SetInt("reverse_normals", 1)
-	renderCube()
-	s.SetInt("reverse_normals", 0)
-	gl.Enable(gl.CULL_FACE)
-	// Cubes
-	model := mgl32.Translate3D(4.0, -3.5, 0.0).Mul4(
-		mgl32.Scale3D(0.5, 0.5, 0.5))
-	s.SetMat4("model", model)
-	renderCube()
-
-	model = mgl32.Translate3D(2.0, 3.0, 1.0).Mul4(
-		mgl32.Scale3D(0.75, 0.75, 0.75))
-	s.SetMat4("model", model)
-	renderCube()
-
-	model = mgl32.Translate3D(-3.0, -1.0, 0.0).Mul4(
-		mgl32.Scale3D(0.5, 0.5, 0.5))
-	s.SetMat4("model", model)
-	renderCube()
-
-	model = mgl32.Translate3D(-1.5, 1.0, 1.5).Mul4(
-		mgl32.Scale3D(0.5, 0.5, 0.5))
-	s.SetMat4("model", model)
-	renderCube()
-
-	model = mgl32.Translate3D(-1.5, 2.0, -3.0).Mul4(
-		mgl32.HomogRotate3D(mgl32.DegToRad(60),
-			mgl32.Vec3{1.0, 0.0, 1.0}.Normalize())).Mul4(
-		mgl32.Scale3D(0.75, 0.75, 0.75))
-	s.SetMat4("model", model)
-	renderCube()
 }
 
 var (
@@ -391,9 +432,9 @@ func renderQuad() {
 }
 
 var (
-	hdr                   = true
-	hdrKeyPressed         = false
-	exposure      float32 = 5.0
+	bloom                   = true
+	bloomKeyPressed         = false
+	exposure        float32 = 1.0
 )
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
@@ -434,12 +475,12 @@ func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
 		heldD = false
 	}
 
-	if key == glfw.KeySpace && action == glfw.Press && !hdrKeyPressed {
-		hdr = !hdr
-		hdrKeyPressed = true
+	if key == glfw.KeySpace && action == glfw.Press && !bloomKeyPressed {
+		bloom = !bloom
+		bloomKeyPressed = true
 	}
 	if key == glfw.KeySpace && action == glfw.Release {
-		hdrKeyPressed = false
+		bloomKeyPressed = false
 	}
 
 	if key == glfw.KeyQ && action == glfw.Press {
