@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"runtime"
 
@@ -93,12 +94,11 @@ func main() {
 	defer glfw.Terminate()
 
 	// Build and compile shaders
-	shaderGeometryPass := shader.MakeShaders("8.1.g_buffer.vs", "8.1.g_buffer.fs")
-	//shaderLightingPass := shader.MakeShaders("8.1.fbo_debug.vs", "8.1.fbo_debug.fs")
-	shaderLightingPass := shader.MakeShaders("8.1.deferred_shading.vs",
-		"8.1.deferred_shading.fs")
-	shaderLightBox := shader.MakeShaders("8.1.deferred_light_box.vs",
-		"8.1.deferred_light_box.fs")
+	shaderGeometryPass := shader.MakeShaders("8.2.g_buffer.vs", "8.2.g_buffer.fs")
+	shaderLightingPass := shader.MakeShaders("8.2.deferred_shading.vs",
+		"8.2.deferred_shading.fs")
+	shaderLightBox := shader.MakeShaders("8.2.deferred_light_box.vs",
+		"8.2.deferred_light_box.fs")
 
 	// Load models
 	backpack := loadModel.NewModel(
@@ -234,11 +234,19 @@ func main() {
 			shaderLightingPass.SetVec3(
 				fmt.Sprintf("lights[%d].Color", i), lightColors[i])
 			// Update attenuation parameters and calculate radius
+			constant := float32(1.0) // Don't send to shader we assume it is 1.0
 			linear := float32(0.7)
 			quadratic := float32(1.8)
 			shaderLightingPass.SetFloat(fmt.Sprintf("lights[%d].Linear", i), linear)
 			shaderLightingPass.SetFloat(
 				fmt.Sprintf("lights[%d].Quadratic", i), quadratic)
+			maxBrightness := float32(math.Max(
+				math.Max(float64(lightColors[i][0]), float64(lightColors[i][1])),
+				float64(lightColors[i][2])))
+			radius := -linear + float32(math.Sqrt(float64(
+				linear*linear-4*quadratic*
+					(constant-(256.0/5.0)*maxBrightness))))/(2.0*quadratic)
+			shaderLightingPass.SetFloat(fmt.Sprintf("lights[%d].Radius", i), radius)
 		}
 		shaderLightingPass.SetVec3("viewPos", ourCamera.Position)
 		renderQuad()
