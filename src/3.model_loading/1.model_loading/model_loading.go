@@ -93,7 +93,7 @@ func main() {
 	ourShader := shader.MakeShaders("1.model_loading.vs",
 		"1.model_loading.fs")
 	ourModel := loadModel.NewModel(
-		"../../../resources/objects/nanosuit/nanosuit.obj", false)
+		"../../../resources/objects/backpack/backpack.obj", false)
 
 	// Draw in polygon mode
 	//gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
