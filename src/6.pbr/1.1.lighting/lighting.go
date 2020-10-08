@@ -89,10 +89,6 @@ func initGLFW() *glfw.Window {
 	return window
 }
 
-func lerp(a, b, f float32) float32 {
-	return a + f*(b-a)
-}
-
 func main() {
 	window := initGLFW()
 	defer glfw.Terminate()
