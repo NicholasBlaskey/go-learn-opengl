@@ -10,12 +10,17 @@ import (
 	"runtime"
 	"unsafe"
 
+	_ "github.com/mdouchement/hdr/codec/rgbe"
+	"image"
+	"image/draw"
+	"os"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
-	loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
+	//loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 )
 
@@ -97,7 +102,7 @@ func main() {
 	// Build and compile shaders
 	pbrShader := shader.MakeShaders("2.1.1.pbr.vs", "2.1.1.pbr.fs")
 	equaiRectToCubeMapShader := shader.MakeShaders(
-		"2.1.1.cubemap.vs", "2.1.1.cubemap.fs")
+		"2.1.1.cubemap.vs", "2.1.1.equirectangular_to_cubemap.fs")
 	backgroundShader := shader.MakeShaders("2.1.1.background.vs", "2.1.1.background.fs")
 
 	pbrShader.Use()
@@ -131,11 +136,33 @@ func main() {
 	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO)
 
 	// Pbr load the HDR environment map
-	var width, height, nrComponents int32 // TODO load
-	data := []byte{}
-	if data == nil {
-		panic("Failed to load HDR image")
+	var width, height int32 // TODO load
+
+	// Start load
+	fi, err := os.Open("../../../resources/textures/hdr/newport_loft.hdr")
+	if err != nil {
+		panic(err)
 	}
+	img, _, err := image.Decode(fi)
+	if err != nil {
+		panic(err)
+	}
+	rgba := image.NewRGBA(img.Bounds())
+	if rgba.Stride != rgba.Rect.Size().X*4 {
+		panic("Unsupported stride")
+	}
+	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
+	data := rgba.Pix
+	width = int32(rgba.Rect.Size().X)
+	height = int32(rgba.Rect.Size().Y)
+	// end load
+
+	/*
+		data := []byte{}
+		if data == nil {
+			panic("Failed to load HDR image")
+		}
+	*/
 
 	var hdrTexture uint32
 	gl.GenTextures(1, &hdrTexture)
@@ -150,7 +177,7 @@ func main() {
 	// Pbr: set up the cubemap to render to and attach to framebuffer
 	var envCubemap uint32
 	gl.GenTextures(1, &envCubemap)
-	gl.BindTextures(gl.TEXTURE_CUBE_MAP, envCubemap)
+	gl.BindTexture(gl.TEXTURE_CUBE_MAP, envCubemap)
 	for i := 0; i < 6; i++ {
 		gl.TexImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X+uint32(i), 0, gl.RGB16F,
 			512, 512, 0, gl.RGB, gl.FLOAT, nil)
@@ -214,33 +241,27 @@ func main() {
 		glfw.PollEvents()
 
 		// Render
-		gl.ClearColor(0.1, 0.1, 0.1, 1.0)
+		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		ourShader.Use()
+		pbrShader.Use()
 		view := ourCamera.GetViewMatrix()
-		ourShader.SetMat4("view", view)
-		ourShader.SetVec3("camPos", ourCamera.Position)
-
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, albedo)
-		gl.ActiveTexture(gl.TEXTURE1)
-		gl.BindTexture(gl.TEXTURE_2D, normal)
-		gl.ActiveTexture(gl.TEXTURE2)
-		gl.BindTexture(gl.TEXTURE_2D, metallic)
-		gl.ActiveTexture(gl.TEXTURE3)
-		gl.BindTexture(gl.TEXTURE_2D, roughness)
-		gl.ActiveTexture(gl.TEXTURE4)
-		gl.BindTexture(gl.TEXTURE_2D, ao)
+		pbrShader.SetMat4("view", view)
+		pbrShader.SetVec3("camPos", ourCamera.Position)
 
 		// Render rows * cols number of spheres
-		// (they all have same properties set by textures)
+		// with varying material properties
 		for row := 0; row < nrRows; row++ {
+			pbrShader.SetFloat("metallic", float32(row)/float32(nrRows))
 			for col := 0; col < nrCols; col++ {
+				// We clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces
+				// (roughness of 0.0) tend to look a bit off on direct lighting.
+				pbrShader.SetFloat("roughness",
+					mgl32.Clamp(float32(col)/float32(nrCols), 0.05, 1.0))
 				model := mgl32.Translate3D(
 					(float32(col)-(float32(nrCols)/2.0))*spacing,
 					(float32(row)-(float32(nrRows)/2.0))*spacing, 0.0)
-				ourShader.SetMat4("model", model)
+				pbrShader.SetMat4("model", model)
 				renderSphere()
 			}
 		}
@@ -249,14 +270,29 @@ func main() {
 			newPos := lightPositions[i].Add(
 				mgl32.Vec3{float32(math.Sin(glfw.GetTime()*5.0)) * 5.0, 0.0, 0.0})
 			// newPos = lightPositions[i] // Confused on why overwrite previous assignment
-			ourShader.SetVec3(fmt.Sprintf("lightPositions[%d]", i), newPos)
-			ourShader.SetVec3(fmt.Sprintf("lightColors[%d]", i), lightColors[i])
+			pbrShader.SetVec3(fmt.Sprintf("lightPositions[%d]", i), newPos)
+			pbrShader.SetVec3(fmt.Sprintf("lightColors[%d]", i), lightColors[i])
 
 			model := mgl32.Translate3D(newPos[0], newPos[1], newPos[2]).Mul4(
 				mgl32.Scale3D(0.5, 0.5, 0.5))
-			ourShader.SetMat4("model", model)
+			pbrShader.SetMat4("model", model)
 			renderSphere()
 		}
+
+		// Render skybox (render as last to prevent overdraw)
+		backgroundShader.Use()
+		backgroundShader.SetMat4("view", view)
+		gl.ActiveTexture(gl.TEXTURE0)
+		gl.BindTexture(gl.TEXTURE_CUBE_MAP, envCubemap)
+		renderCube()
+
+		/*
+			equaiRectToCubeMapShader.Use()
+			equaiRectToCubeMapShader.SetMat4("view", view)
+			gl.ActiveTexture(gl.TEXTURE0)
+			gl.BindTexture(gl.TEXTURE_2D, hdrTexture)
+			renderCube()
+		*/
 
 		window.SwapBuffers()
 	}
@@ -264,6 +300,8 @@ func main() {
 
 var (
 	sphereVAO  uint32 = 0
+	cubeVAO    uint32 = 0
+	cubeVBO    uint32 = 0
 	indexCount uint32
 )
 
