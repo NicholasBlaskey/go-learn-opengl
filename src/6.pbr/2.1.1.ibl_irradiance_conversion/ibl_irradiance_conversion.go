@@ -3,17 +3,28 @@
 
 package main
 
+/*
+#cgo LDFLAGS: -lm
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+float* load_hdr(char* path, int* width, int* height, int* nrChannels)
+{
+	stbi_set_flip_vertically_on_load(1);
+	float* data = stbi_loadf(path,
+	//float* data = stbi_loadf("../../../resources/textures/hdr/newport_loft.hdr",
+		width, height, nrChannels, 0);
+	return data;
+}
+*/
+import "C"
+
 import (
 	"fmt"
 	"log"
 	"math"
 	"runtime"
 	"unsafe"
-
-	_ "github.com/mdouchement/hdr/codec/rgbe"
-	"image"
-	"image/draw"
-	"os"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -22,6 +33,7 @@ import (
 	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
 	//loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
+	//"github.com/disintegration/imaging"
 )
 
 // Settings
@@ -50,6 +62,16 @@ var heldW bool = false
 var heldA bool = false
 var heldS bool = false
 var heldD bool = false
+
+func loadHDR(path string) (unsafe.Pointer, int32, int32, int32) {
+	var width, height, nrChannels C.int
+
+	cPathString := C.CString(path)
+	defer C.free(unsafe.Pointer(cPathString))
+
+	data := C.load_hdr(cPathString, &width, &height, &nrChannels)
+	return gl.Ptr(data), int32(width), int32(height), int32(nrChannels)
+}
 
 func init() {
 	runtime.LockOSThread()
@@ -136,39 +158,18 @@ func main() {
 	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO)
 
 	// Pbr load the HDR environment map
-	var width, height int32 // TODO load
-
-	// Start load
-	fi, err := os.Open("../../../resources/textures/hdr/newport_loft.hdr")
-	if err != nil {
-		panic(err)
-	}
-	img, _, err := image.Decode(fi)
-	if err != nil {
-		panic(err)
-	}
-	rgba := image.NewRGBA(img.Bounds())
-	if rgba.Stride != rgba.Rect.Size().X*4 {
-		panic("Unsupported stride")
-	}
-	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
-	data := rgba.Pix
-	width = int32(rgba.Rect.Size().X)
-	height = int32(rgba.Rect.Size().Y)
-	// end load
-
-	/*
-		data := []byte{}
-		if data == nil {
-			panic("Failed to load HDR image")
-		}
-	*/
+	data, width, height, _ := loadHDR("../../../resources/textures/hdr/newport_loft.hdr")
 
 	var hdrTexture uint32
 	gl.GenTextures(1, &hdrTexture)
 	gl.BindTexture(gl.TEXTURE_2D, hdrTexture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, width, height, 0,
-		gl.RGB, gl.FLOAT, gl.Ptr(&data[0]))
+	//gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, width, height, 0,
+	//	gl.RGB, gl.FLOAT, gl.Ptr(&data[0]))
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, int32(width), int32(height), 0,
+		gl.RGB, gl.FLOAT, data)
+
+	//gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0,
+	//	gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(flippedData.Pix))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
