@@ -3,22 +3,6 @@
 
 package main
 
-/*
-#cgo LDFLAGS: -lm
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-float* load_hdr(char* path, int* width, int* height, int* nrChannels)
-{
-	stbi_set_flip_vertically_on_load(1);
-	float* data = stbi_loadf(path,
-	//float* data = stbi_loadf("../../../resources/textures/hdr/newport_loft.hdr",
-		width, height, nrChannels, 0);
-	return data;
-}
-*/
-import "C"
-
 import (
 	"fmt"
 	"log"
@@ -29,6 +13,8 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
+
+	"github.com/nicholasblaskey/stbi"
 
 	"github.com/nicholasblaskey/go-learn-opengl/includes/camera"
 	//loadModel "github.com/nicholasblaskey/go-learn-opengl/includes/model"
@@ -62,16 +48,6 @@ var heldW bool = false
 var heldA bool = false
 var heldS bool = false
 var heldD bool = false
-
-func loadHDR(path string) (unsafe.Pointer, int32, int32, int32) {
-	var width, height, nrChannels C.int
-
-	cPathString := C.CString(path)
-	defer C.free(unsafe.Pointer(cPathString))
-
-	data := C.load_hdr(cPathString, &width, &height, &nrChannels)
-	return gl.Ptr(data), int32(width), int32(height), int32(nrChannels)
-}
 
 func init() {
 	runtime.LockOSThread()
@@ -158,7 +134,12 @@ func main() {
 	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO)
 
 	// Pbr load the HDR environment map
-	data, width, height, _ := loadHDR("../../../resources/textures/hdr/newport_loft.hdr")
+	path := "../../../resources/textures/hdr/newport_loft.hdr"
+	data, width, height, _, cleanup, err := stbi.Loadf(path, true, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer cleanup()
 
 	var hdrTexture uint32
 	gl.GenTextures(1, &hdrTexture)
