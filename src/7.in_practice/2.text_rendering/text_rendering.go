@@ -94,7 +94,7 @@ func main() {
 	// Build and compile shaders
 	ourShader := shader.MakeShaders("text.vs", "text.fs")
 	projection := mgl32.Ortho(0.0, float32(windowWidth),
-		0.0, float32(windowHeight), 0.0, 0.0)
+		0.0, float32(windowHeight), 0.0, 1.0)
 	ourShader.Use()
 	ourShader.SetMat4("projection", projection)
 
@@ -118,7 +118,7 @@ func main() {
 	}
 
 	characters = make([]*Character, 128)
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+	//gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
 	scale := float32(48.0)
 	for c := 0; c < 128; c++ {
 		ttfFace := truetype.NewFace(ttf, &truetype.Options{
@@ -163,10 +163,27 @@ func main() {
 		freeContext.SetSrc(fg)
 		freeContext.SetHinting(font.HintingFull)
 
+		// Set the gylph dot
+		px := 0 - (int(gBnd.Min.X) >> 6)
+		py := int(gBnd.Max.Y) >> 6
+		pt := freetype.Pt(px, py)
+
+		// Draw text to image
+		// TODO
+		val, err := freeContext.DrawString("A", pt)
+		fmt.Println(val)
+		if err != nil {
+			panic(err)
+		}
+		//fmt.Println(rgba.Pix)
+		//if c == 95 {
+		//	panic("Bleh")
+		fmt.Println(rgba.Pix)
+
 		var texture uint32
 		gl.GenTextures(1, &texture)
 		gl.BindTexture(gl.TEXTURE_2D, texture)
-		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RED,
+		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
 			int32(rgba.Rect.Dx()), int32(rgba.Rect.Dy()), 0, gl.RGBA,
 			gl.UNSIGNED_BYTE, gl.Ptr(rgba.Pix))
 
@@ -183,6 +200,8 @@ func main() {
 	fmt.Println(characters)
 	// End free type
 
+	//	panic("EHH")
+
 	// Configure VAO/VBO for texture quads
 	gl.GenVertexArrays(1, &VAO)
 	gl.GenBuffers(1, &VBO)
@@ -196,7 +215,7 @@ func main() {
 
 	// Program loop
 	// Draw in polygon mode
-	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+	//gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	for !window.ShouldClose() {
 		// Input
 		glfw.PollEvents()
@@ -207,6 +226,8 @@ func main() {
 
 		renderText(ourShader, "This is sample text", 25.0, 25.0, 1.0,
 			mgl32.Vec3{0.5, 0.8, 0.2})
+		renderText(ourShader, "(C) LearnOpenGL.com", 540.0, 570.0, 0.5,
+			mgl32.Vec3{0.3, 0.7, 0.9})
 
 		window.SwapBuffers()
 	}
@@ -223,9 +244,9 @@ func renderText(ourShader shader.Shader, text string,
 	for i := 0; i < len(text); i++ {
 		ch := characters[text[i]]
 
-		xPos := float32(25.0)
+		//xPos := float32(25.0)
 		yPos := float32(25.0)
-		//xPos := x + float32(ch.Bearing[0])*scale // bearingH
+		xPos := x + float32(ch.Bearing[0])*scale // bearingH
 		//yPos := y - float32(ch.Size[1]-ch.Bearing[1])*scale // bearingV
 
 		w := float32(ch.Size[0]) * scale
