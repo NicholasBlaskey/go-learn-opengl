@@ -33,8 +33,9 @@ const (
 )
 
 var (
-	VAO uint32
-	VBO uint32
+	VAO        uint32
+	VBO        uint32
+	characters []*Character
 )
 
 type Character struct {
@@ -116,7 +117,7 @@ func main() {
 		panic(err)
 	}
 
-	characters := make([]*Character, 128)
+	characters = make([]*Character, 128)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
 	scale := float32(48.0)
 	for c := 0; c < 128; c++ {
@@ -145,7 +146,7 @@ func main() {
 
 		char := new(Character)
 		char.Size = [2]int32{gw, gh}
-		char.Bearing = [2]int32{int32(gBnd.Max.X) >> 6, int32(gBnd.Max.Y) >> 6}
+		char.Bearing = [2]int32{int32(gBnd.Min.X) >> 6, int32(gBnd.Max.Y) >> 6}
 		char.Advance = uint32(gAdv)
 
 		fg, bg := image.White, image.Black
@@ -169,9 +170,14 @@ func main() {
 			int32(rgba.Rect.Dx()), int32(rgba.Rect.Dy()), 0, gl.RGBA,
 			gl.UNSIGNED_BYTE, gl.Ptr(rgba.Pix))
 
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
 		char.TextureID = texture
 		characters[c] = char
-		fmt.Printf("%+v\n", char)
+		//fmt.Printf("%+v\n", char)
 	}
 
 	fmt.Println(characters)
@@ -188,14 +194,9 @@ func main() {
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
 
-	/*
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	*/
-
 	// Program loop
+	// Draw in polygon mode
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
 	for !window.ShouldClose() {
 		// Input
 		glfw.PollEvents()
@@ -204,48 +205,60 @@ func main() {
 		gl.ClearColor(0.2, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		//renderText(ourShader, "This is sample text", 25.0, 25.0, 1.0,
-		//	mgl32.Vec3{0.5, 0.8, 0.2})
+		renderText(ourShader, "This is sample text", 25.0, 25.0, 1.0,
+			mgl32.Vec3{0.5, 0.8, 0.2})
 
 		window.SwapBuffers()
 	}
 }
 
-var (
-	sphereVAO  uint32 = 0
-	quadVAO    uint32 = 0
-	quadVBO    uint32 = 0
-	indexCount uint32
-)
+func renderText(ourShader shader.Shader, text string,
+	x, y, scale float32, col mgl32.Vec3) {
 
-func renderQuad() {
-	if quadVAO != 0 {
-		gl.BindVertexArray(quadVAO)
-		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, 4)
-		gl.BindVertexArray(0)
-		return
-	}
+	ourShader.Use()
+	ourShader.SetVec3("textColor", col)
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindVertexArray(VAO)
 
-	vertices := []float32{
-		// positions        // texture Coords
-		-1.0, 1.0, 0.0, 0.0, 1.0,
-		-1.0, -1.0, 0.0, 0.0, 0.0,
-		1.0, 1.0, 0.0, 1.0, 1.0,
-		1.0, -1.0, 0.0, 1.0, 0.0,
+	for i := 0; i < len(text); i++ {
+		ch := characters[text[i]]
+
+		xPos := float32(25.0)
+		yPos := float32(25.0)
+		//xPos := x + float32(ch.Bearing[0])*scale // bearingH
+		//yPos := y - float32(ch.Size[1]-ch.Bearing[1])*scale // bearingV
+
+		w := float32(ch.Size[0]) * scale
+		h := float32(ch.Size[0]) * scale
+		fmt.Printf("\n\n %f - (%d - %d)*%f\n", y, ch.Size[1], ch.Bearing[1], scale)
+		fmt.Printf("(xPos, yPos) = (%0.2f, %0.2f)\n", xPos, yPos)
+		fmt.Printf("(w, h) = (%0.2f, %0.2f) (bearing) = (%d, %d) size = (%d, %d) \n",
+			w, h, ch.Bearing[0], ch.Bearing[1], ch.Size[0], ch.Size[1])
+		//		fmt.Printf("(x = %0.2f, y = %0.2f) \n", x, y)
+		// Update VBO for each character
+		vertices := []float32{
+			xPos, yPos + h, 0.0, 0.0,
+			xPos, yPos, 0.0, 1.0,
+			xPos + w, yPos, 1.0, 1.0,
+
+			xPos, yPos + h, 0.0, 0.0,
+			xPos + w, yPos, 1.0, 1.0,
+			xPos + w, yPos + h, 1.0, 0.0,
+		}
+
+		// Render glyph texture over quad
+		gl.BindTexture(gl.TEXTURE_2D, ch.TextureID)
+		// Update content of VBO memory
+		gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
+		gl.BufferSubData(gl.ARRAY_BUFFER, 0, 4*len(vertices), gl.Ptr(vertices))
+
+		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+		gl.DrawArrays(gl.TRIANGLES, 0, 6)
+
+		x += float32(ch.Advance>>6) * scale
 	}
-	gl.GenVertexArrays(1, &quadVAO)
-	gl.GenBuffers(1, &quadVBO)
-	gl.BindVertexArray(quadVAO)
-	gl.BindBuffer(gl.ARRAY_BUFFER, quadVBO)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4,
-		gl.Ptr(vertices), gl.STATIC_DRAW)
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 5*4, gl.PtrOffset(0))
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
 	gl.BindVertexArray(0)
-
-	renderQuad()
+	gl.BindTexture(gl.TEXTURE_2D, 0)
 }
 
 func keyCallback(window *glfw.Window, key glfw.Key, scancode int,
