@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-gl/gl/all-core/gl"
 
-	//"github.com/nullboundary/glfont"
-	"github.com/nicholasblaskey/glfont"
+	"github.com/nullboundary/glfont"
+	//"github.com/nicholasblaskey/glfont"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
@@ -53,7 +53,7 @@ func initGLFW() *glfw.Window {
 	}
 
 	// Config gl global state
-	gl.Enable(gl.CULL_FACE) // Cull face enabled works with changes
+	//gl.Enable(gl.CULL_FACE) // Cull face enabled works with changes
 	//gl.CullFace(gl.FRONT)   // Culling front face doesn't show
 	//gl.CullFace(gl.BACK) // Culling back faces shows
 
