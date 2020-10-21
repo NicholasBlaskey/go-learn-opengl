@@ -5,7 +5,7 @@ import (
 )
 
 type Texture struct {
-	Id             uint32
+	ID             uint32
 	Width          int32
 	Height         int32
 	InternalFormat int32
@@ -25,14 +25,14 @@ func New() *Texture {
 		FilterMin:      gl.LINEAR,
 		FilterMax:      gl.LINEAR,
 	}
-	gl.GenTextures(1, &t.Id)
+	gl.GenTextures(1, &t.ID)
 	return &t
 }
 
 func (t *Texture) Generate(width, height int32, data []byte) {
 	t.Width, t.Height = width, height
 	// Create texture
-	gl.BindTexture(gl.TEXTURE_2D, t.Id)
+	gl.BindTexture(gl.TEXTURE_2D, t.ID)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, t.InternalFormat, width, height, 0,
 		t.ImageFormat, gl.UNSIGNED_BYTE, gl.Ptr(data))
 	// Set texture wrap and filter modes
@@ -45,5 +45,5 @@ func (t *Texture) Generate(width, height int32, data []byte) {
 }
 
 func (t *Texture) Bind() {
-	gl.BindTexture(gl.TEXTURE_2D, t.Id)
+	gl.BindTexture(gl.TEXTURE_2D, t.ID)
 }

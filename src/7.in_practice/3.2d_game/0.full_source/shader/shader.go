@@ -12,7 +12,7 @@ type Shader struct {
 	ID uint32
 }
 
-func MakeShaders(vertexCode string, fragmentCode string) Shader {
+func MakeShaders(vertexCode string, fragmentCode string) *Shader {
 	// Compile the shaders
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
 	shaderSource, freeVertex := gl.Strs(vertexCode + "\x00")
@@ -40,10 +40,10 @@ func MakeShaders(vertexCode string, fragmentCode string) Shader {
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-	return Shader{ID: ID}
+	return &Shader{ID: ID}
 }
 
-func MakeGeomShaders(vertexCode, fragmentCode, geoCode string) Shader {
+func MakeGeomShaders(vertexCode, fragmentCode, geoCode string) *Shader {
 	// Compile the shaders
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
 	shaderSource, freeVertex := gl.Strs(vertexCode + "\x00")
@@ -80,7 +80,7 @@ func MakeGeomShaders(vertexCode, fragmentCode, geoCode string) Shader {
 	gl.DeleteShader(fragmentShader)
 	gl.DeleteShader(geoShader)
 
-	return Shader{ID: ID}
+	return &Shader{ID: ID}
 }
 
 func (s *Shader) Use() *Shader {
