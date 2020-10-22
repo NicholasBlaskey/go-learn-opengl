@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gl/glfw/v3.1/glfw"
 
+	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/ballObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameLevel"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/resourceManager"
@@ -30,6 +31,10 @@ var (
 	Player         *gameObject.GameObject
 	PlayerSize     mgl32.Vec2 = mgl32.Vec2{100.0, 20.0}
 	PlayerVelocity float32    = 500.0
+
+	Ball                *ballObject.BallObject
+	InitialBallVelocity mgl32.Vec2 = mgl32.Vec2{100.0, -350.0}
+	BallRadius          float32    = 12.5
 )
 
 var textureDir string = "../../../../resources/textures/"
@@ -76,6 +81,11 @@ func (g *Game) Init() {
 	Player = gameObject.New(playerPos, PlayerSize,
 		resourceManager.Textures["paddle"], mgl32.Vec3{1.0, 1.0, 1.0},
 		mgl32.Vec2{0.0, 0.0})
+
+	ballPos := playerPos.Add(mgl32.Vec2{
+		PlayerSize[0]/2.0 - BallRadius, -BallRadius * 2.0})
+	Ball = ballObject.New(ballPos, BallRadius, InitialBallVelocity,
+		resourceManager.Textures["face"])
 }
 
 func (g *Game) ProcessInput(dt float64) {
@@ -85,25 +95,31 @@ func (g *Game) ProcessInput(dt float64) {
 		if g.Keys[glfw.KeyA] {
 			if Player.Position[0] >= 0.0 {
 				Player.Position[0] -= velocity
+				if Ball.Stuck {
+					Ball.Object.Position[0] -= velocity
+				}
 			}
 		}
 		if g.Keys[glfw.KeyD] {
 			if Player.Position[0] <= (float32(g.Width) - Player.Size[0]) {
 				Player.Position[0] += velocity
+				if Ball.Stuck {
+					Ball.Object.Position[0] += velocity
+				}
 			}
+		}
+
+		if g.Keys[glfw.KeySpace] {
+			Ball.Stuck = false
 		}
 	}
 }
 
 func (g *Game) Update(dt float64) {
-
+	Ball.Move(float32(dt), uint32(g.Width))
 }
 
 func (g *Game) Render() {
-
-	//renderer.DrawSprite(resourceManager.Textures["face"], mgl32.Vec2{200.0, 200.0},
-	//	mgl32.Vec2{300.0, 400.0}, 45.0, mgl32.Vec3{0.0, 1.0, 0.0})
-
 	if g.State == GameActive {
 		renderer.DrawSprite(resourceManager.Textures["background"],
 			mgl32.Vec2{0.0, 0.0}, mgl32.Vec2{float32(g.Width), float32(g.Height)},
@@ -111,5 +127,7 @@ func (g *Game) Render() {
 
 		g.Levels[g.Level].Draw(renderer)
 		Player.Draw(renderer)
+
+		Ball.Object.Draw(renderer)
 	}
 }
