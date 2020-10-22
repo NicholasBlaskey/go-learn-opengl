@@ -110,7 +110,7 @@ func (s *Shader) SetVector2f(name string, value mgl32.Vec2, useShader bool) {
 		1, &value[0])
 }
 
-func (s *Shader) SetVector3(name string, value mgl32.Vec3, useShader bool) {
+func (s *Shader) SetVector3f(name string, value mgl32.Vec3, useShader bool) {
 	if useShader {
 		s.Use()
 	}
