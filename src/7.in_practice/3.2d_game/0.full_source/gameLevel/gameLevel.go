@@ -16,9 +16,8 @@ type GameLevel struct {
 	Bricks []*gameObject.GameObject
 }
 
-func (gl *GameLevel) Load(filePath string, levelWidth, levelHeight uint32) {
-
-	gl.Bricks = []*gameObject.GameObject{}
+func (l *GameLevel) Load(filePath string, levelWidth, levelHeight uint32) {
+	l.Bricks = []*gameObject.GameObject{}
 
 	// Load from file
 	tileData := [][]uint32{}
@@ -40,20 +39,20 @@ func (gl *GameLevel) Load(filePath string, levelWidth, levelHeight uint32) {
 	}
 
 	if len(tileData) > 0 {
-		gl.init(tileData, levelWidth, levelHeight)
+		l.init(tileData, levelWidth, levelHeight)
 	}
 }
 
-func (gl *GameLevel) Draw(renderer *spriteRenderer.SpriteRenderer) {
-	for _, tile := range gl.Bricks {
+func (l *GameLevel) Draw(renderer *spriteRenderer.SpriteRenderer) {
+	for _, tile := range l.Bricks {
 		if !tile.Destroyed {
 			tile.Draw(renderer)
 		}
 	}
 }
 
-func (gl *GameLevel) IsCompleted() bool {
-	for _, tile := range gl.Bricks {
+func (l *GameLevel) IsCompleted() bool {
+	for _, tile := range l.Bricks {
 		if !tile.IsSolid && !tile.Destroyed {
 			return false
 		}
@@ -61,8 +60,7 @@ func (gl *GameLevel) IsCompleted() bool {
 	return true
 }
 
-func (gl *GameLevel) init(tileData [][]uint32, levelWidth, levelHeight uint32) {
-
+func (l *GameLevel) init(tileData [][]uint32, levelWidth, levelHeight uint32) {
 	// Calculate dimensions
 	height := len(tileData)
 	width := len(tileData[0])
@@ -80,7 +78,7 @@ func (gl *GameLevel) init(tileData [][]uint32, levelWidth, levelHeight uint32) {
 					resourceManager.Textures["block_solid"],
 					mgl32.Vec3{0.8, 0.8, 0.7}, mgl32.Vec2{0, 0})
 				obj.IsSolid = true
-				gl.Bricks = append(gl.Bricks, obj)
+				l.Bricks = append(l.Bricks, obj)
 			} else if tileData[y][x] > 1 {
 				color := mgl32.Vec3{1.0, 1.0, 1.0}
 				if tileData[y][x] == 2 {
@@ -95,7 +93,7 @@ func (gl *GameLevel) init(tileData [][]uint32, levelWidth, levelHeight uint32) {
 
 				obj := gameObject.New(pos, size,
 					resourceManager.Textures["block"], color, mgl32.Vec2{0, 0})
-				gl.Bricks = append(gl.Bricks, obj)
+				l.Bricks = append(l.Bricks, obj)
 			}
 		}
 	}
