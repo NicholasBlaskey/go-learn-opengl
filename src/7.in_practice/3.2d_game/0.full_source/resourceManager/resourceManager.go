@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	Textures map[string]*texture.Texture
-	Shaders  map[string]*shader.Shader
+	Textures map[string]*texture.Texture = make(map[string]*texture.Texture)
+	Shaders  map[string]*shader.Shader   = make(map[string]*shader.Shader)
 )
 
 func LoadShader(vShaderFile, fShaderFile, name string) *shader.Shader {
@@ -85,7 +85,6 @@ func loadTextureFromFile(file string) *texture.Texture {
 	if rgba.Stride != rgba.Rect.Size().X*4 {
 		panic("Unsupported stride")
 	}
-
 	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 
 	t := texture.New()
