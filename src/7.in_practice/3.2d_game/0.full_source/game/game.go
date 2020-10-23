@@ -125,6 +125,11 @@ func (g *Game) ProcessInput(dt float64) {
 func (g *Game) Update(dt float64) {
 	Ball.Move(float32(dt), uint32(g.Width))
 	g.DoCollisions()
+
+	if Ball.Object.Position[1] >= float32(g.Height) {
+		g.ResetLevel()
+		g.ResetPlayer()
+	}
 }
 
 func (g *Game) Render() {
@@ -138,6 +143,24 @@ func (g *Game) Render() {
 
 		Ball.Object.Draw(renderer)
 	}
+}
+
+func (g *Game) ResetLevel() {
+	lName := []string{"one", "two", "three", "four"}[g.Level]
+	g.Levels[g.Level].Load(levelDir+lName+".lvl",
+		uint32(g.Width), uint32(g.Height/2))
+}
+
+func (g *Game) ResetPlayer() {
+	// Reset player / ball states
+	Player.Size = PlayerSize
+	Player.Position = mgl32.Vec2{
+		float32(g.Width)/2.0 - PlayerSize[0]/2.0,
+		float32(g.Height) - PlayerSize[1],
+	}
+	Ball.Reset(Player.Position.Add(
+		mgl32.Vec2{PlayerSize[0]/2.0 - BallRadius, -(BallRadius * 2.0)}),
+		InitialBallVelocity)
 }
 
 func (g *Game) DoCollisions() {
@@ -174,6 +197,24 @@ func (g *Game) DoCollisions() {
 			}
 		}
 	}
+
+	hit, _, _ := CheckCollisionBall(Ball, Player)
+	if !Ball.Stuck && hit {
+		// Check where it hit the board
+		centerBoard := Player.Position[0] + Player.Size[0]/2.0
+		distance := (Ball.Object.Position[0] + Ball.Radius) - centerBoard
+		percentage := distance / (Player.Size[0] / 2.0)
+		// Chage velocity according to where the ball was hit
+		strength := float32(2.0)
+		oldVelocity := Ball.Object.Velocity
+		lenOldVelocity := oldVelocity.Len()
+		Ball.Object.Velocity[0] = InitialBallVelocity[0] * percentage * strength
+
+		//Ball.Object.Velocity[1] *= -1
+		Ball.Object.Velocity[1] = -1 * mgl32.Abs(Ball.Object.Velocity[1])
+		Ball.Object.Velocity = Ball.Object.Velocity.Normalize().Mul(lenOldVelocity)
+	}
+
 }
 
 func CheckCollision(one, two *gameObject.GameObject) bool {
