@@ -8,6 +8,7 @@ import (
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/ballObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameLevel"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameObject"
+	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/particle"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/resourceManager"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/spriteRenderer"
 )
@@ -47,6 +48,7 @@ var (
 var textureDir string = "../../../../resources/textures/"
 var levelDir string = "../../../../resources/levels/"
 var renderer *spriteRenderer.SpriteRenderer
+var Particles *particle.Generator
 
 func New(width, height int) *Game {
 	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0}
@@ -55,15 +57,15 @@ func New(width, height int) *Game {
 func (g *Game) Init() {
 	// Load shaders
 	resourceManager.LoadShader("shaders/sprite.vs", "shaders/sprite.fs", "sprite")
+	resourceManager.LoadShader("shaders/particle.vs", "shaders/particle.fs", "particle")
 
 	// Configure shaders
 	projection := mgl32.Ortho(0.0, float32(g.Width), float32(g.Height), 0.0,
 		-1.0, 1.0)
 	resourceManager.Shaders["sprite"].SetInteger("image", 0, true)
 	resourceManager.Shaders["sprite"].SetMatrix4("projection", projection, false)
-
-	// Set render-specific controls
-	renderer = spriteRenderer.New(resourceManager.Shaders["sprite"])
+	resourceManager.Shaders["particle"].SetInteger("sprite", 0, true)
+	resourceManager.Shaders["particle"].SetMatrix4("projection", projection, false)
 
 	// Load textures
 	resourceManager.LoadTexture(textureDir+"background.jpg", "background")
@@ -71,6 +73,12 @@ func (g *Game) Init() {
 	resourceManager.LoadTexture(textureDir+"block.png", "block")
 	resourceManager.LoadTexture(textureDir+"block_solid.png", "block_solid")
 	resourceManager.LoadTexture(textureDir+"paddle.png", "paddle")
+	resourceManager.LoadTexture(textureDir+"particle.png", "particle")
+
+	// Set render-specific controls
+	renderer = spriteRenderer.New(resourceManager.Shaders["sprite"])
+	Particles = particle.NewGenerator(resourceManager.Shaders["particle"],
+		resourceManager.Textures["particle"], 500)
 
 	// Load levels
 	w := uint32(g.Width)
@@ -126,6 +134,9 @@ func (g *Game) Update(dt float64) {
 	Ball.Move(float32(dt), uint32(g.Width))
 	g.DoCollisions()
 
+	Particles.Update(float32(dt), Ball.Object, 3, //2,
+		mgl32.Vec2{Ball.Radius / 2.0, Ball.Radius / 2.0})
+
 	if Ball.Object.Position[1] >= float32(g.Height) {
 		g.ResetLevel()
 		g.ResetPlayer()
@@ -140,6 +151,8 @@ func (g *Game) Render() {
 
 		g.Levels[g.Level].Draw(renderer)
 		Player.Draw(renderer)
+
+		Particles.Draw()
 
 		Ball.Object.Draw(renderer)
 	}

@@ -128,7 +128,7 @@ func (g *Generator) respawnParticle(particle *Particle,
 	object *gameObject.GameObject, offset mgl32.Vec2) {
 
 	random := float32(rand.Int31n(100)-50) / 10.0
-	rColor := 0.5 + float32(rand.Int31n(100)/100.0)
+	rColor := 0.5 + float32(rand.Int31n(100))/100.0
 	particle.Position = object.Position.Add(
 		offset).Add(mgl32.Vec2{random, random})
 	particle.Color = mgl32.Vec4{rColor, rColor, rColor, 1.0}
