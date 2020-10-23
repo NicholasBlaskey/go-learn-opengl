@@ -117,6 +117,7 @@ func (g *Game) ProcessInput(dt float64) {
 
 func (g *Game) Update(dt float64) {
 	Ball.Move(float32(dt), uint32(g.Width))
+	g.DoCollisions()
 }
 
 func (g *Game) Render() {
@@ -130,4 +131,48 @@ func (g *Game) Render() {
 
 		Ball.Object.Draw(renderer)
 	}
+}
+
+func (g *Game) DoCollisions() {
+	for _, box := range g.Levels[g.Level].Bricks {
+		if !box.Destroyed {
+			if CheckCollisionBall(Ball, box) {
+				//if CheckCollision(Ball.Object, box) {
+				if !box.IsSolid {
+					box.Destroyed = true
+				}
+			}
+		}
+	}
+}
+
+func CheckCollision(one, two *gameObject.GameObject) bool {
+	// Collision x-axis?
+	collisionX := (one.Position[0]+one.Size[0]) >= two.Position[0] &&
+		(two.Position[0]+two.Size[0]) >= one.Position[0]
+	// Collision y-axis?
+	collisionY := (one.Position[1]+one.Size[1]) >= two.Position[1] &&
+		(two.Position[1]+two.Size[1]) >= one.Position[1]
+	// Collision only if both sides
+	return collisionX && collisionY
+}
+
+func CheckCollisionBall(one *ballObject.BallObject, two *gameObject.GameObject) bool {
+	center := one.Object.Position.Add(mgl32.Vec2{one.Radius, one.Radius})
+	// Calculate AABB info (center, half-extents)
+	aabbHalfExtents := mgl32.Vec2{two.Size[0] / 2.0, two.Size[1] / 2.0}
+	aabbCenter := aabbHalfExtents.Add(two.Position)
+
+	// Get difference vector between both centers
+	difference := center.Sub(aabbCenter)
+	clamped := mgl32.Vec2{
+		mgl32.Clamp(difference[0], -aabbHalfExtents[0], aabbHalfExtents[0]),
+		mgl32.Clamp(difference[1], -aabbHalfExtents[1], aabbHalfExtents[1]),
+	}
+
+	// Add clamped value to AABB_center and we get the value of box closet to circle
+	closest := aabbCenter.Add(clamped)
+	difference = closest.Sub(center)
+
+	return difference.Len() < one.Radius
 }
