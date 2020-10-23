@@ -189,9 +189,9 @@ func (g *Game) DoCollisions() {
 					// Relocate
 					penetration := Ball.Radius - mgl32.Abs(diffVector[1])
 					if dir == Up {
-						Ball.Object.Position[1] += penetration
-					} else {
 						Ball.Object.Position[1] -= penetration
+					} else {
+						Ball.Object.Position[1] += penetration
 					}
 				}
 			}
