@@ -18,6 +18,13 @@ const (
 	GameWin
 )
 
+const (
+	Up int = iota
+	Right
+	Down
+	Left
+)
+
 type Game struct {
 	State  int
 	Keys   []bool
@@ -136,10 +143,33 @@ func (g *Game) Render() {
 func (g *Game) DoCollisions() {
 	for _, box := range g.Levels[g.Level].Bricks {
 		if !box.Destroyed {
-			if CheckCollisionBall(Ball, box) {
-				//if CheckCollision(Ball.Object, box) {
+			hit, dir, diffVector := CheckCollisionBall(Ball, box)
+			if hit {
 				if !box.IsSolid {
 					box.Destroyed = true
+				}
+
+				// Collision resolution
+				if dir == Left || dir == Right { // Horizontal collison
+					// Reverse horizontal velocity
+					Ball.Object.Velocity[0] = -Ball.Object.Velocity[0]
+					// Relocate
+					penetration := Ball.Radius - mgl32.Abs(diffVector[0])
+					if dir == Left {
+						Ball.Object.Position[0] += penetration
+					} else {
+						Ball.Object.Position[0] -= penetration
+					}
+				} else { // Vertical collision
+					// Reverse vertical velocity
+					Ball.Object.Velocity[1] = -Ball.Object.Velocity[1]
+					// Relocate
+					penetration := Ball.Radius - mgl32.Abs(diffVector[1])
+					if dir == Up {
+						Ball.Object.Position[1] += penetration
+					} else {
+						Ball.Object.Position[1] -= penetration
+					}
 				}
 			}
 		}
@@ -157,7 +187,9 @@ func CheckCollision(one, two *gameObject.GameObject) bool {
 	return collisionX && collisionY
 }
 
-func CheckCollisionBall(one *ballObject.BallObject, two *gameObject.GameObject) bool {
+func CheckCollisionBall(one *ballObject.BallObject,
+	two *gameObject.GameObject) (bool, int, mgl32.Vec2) {
+
 	center := one.Object.Position.Add(mgl32.Vec2{one.Radius, one.Radius})
 	// Calculate AABB info (center, half-extents)
 	aabbHalfExtents := mgl32.Vec2{two.Size[0] / 2.0, two.Size[1] / 2.0}
@@ -174,5 +206,27 @@ func CheckCollisionBall(one *ballObject.BallObject, two *gameObject.GameObject) 
 	closest := aabbCenter.Add(clamped)
 	difference = closest.Sub(center)
 
-	return difference.Len() < one.Radius
+	if difference.Len() < one.Radius {
+		return true, VectorDirection(difference), difference
+	}
+	return false, Up, mgl32.Vec2{0, 0}
+}
+
+func VectorDirection(target mgl32.Vec2) int {
+	compass := []mgl32.Vec2{
+		mgl32.Vec2{0.0, 1.0},  // Up
+		mgl32.Vec2{1.0, 0.0},  // Right
+		mgl32.Vec2{0.0, -1.0}, // Down
+		mgl32.Vec2{-1.0, 0.0}, // Left
+	}
+	max := float32(0.0)
+	bestMatch := -1
+	for i, direction := range compass {
+		dotProd := target.Normalize().Dot(direction)
+		if dotProd > max {
+			max = dotProd
+			bestMatch = i
+		}
+	}
+	return bestMatch
 }
