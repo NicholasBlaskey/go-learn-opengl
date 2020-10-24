@@ -204,7 +204,7 @@ func (g *Game) DoCollisions() {
 				if !box.IsSolid {
 					box.Destroyed = true
 				} else {
-					ShakeTime = 0.10
+					ShakeTime = 0.05
 					Effects.Shake = true
 				}
 

@@ -105,6 +105,7 @@ func (p *PostProcessor) EndRender() {
 	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, p.FBO)
 	gl.BlitFramebuffer(0, 0, p.Width, p.Height, 0, 0, p.Width, p.Height,
 		gl.COLOR_BUFFER_BIT, gl.NEAREST)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
 
 func boolToInt(b bool) int32 {
