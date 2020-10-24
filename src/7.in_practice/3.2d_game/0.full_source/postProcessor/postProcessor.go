@@ -46,6 +46,7 @@ func New(s *shader.Shader, width, height int32) *PostProcessor {
 	// Also initialize the FBO / texture to blit multisample color-buffer to
 	// be used for shader operations (for postprocessing effects)
 	gl.BindFramebuffer(gl.FRAMEBUFFER, p.FBO)
+	p.Texture = texture.New()
 	p.Texture.Generate(width, height, nil)
 	// Attach texture to framebuffer as its color attachment
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, p.Texture.ID, 0)

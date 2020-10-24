@@ -9,6 +9,7 @@ import (
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameLevel"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/particle"
+	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/postProcessor"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/resourceManager"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/spriteRenderer"
 )
@@ -43,12 +44,15 @@ var (
 	Ball                *ballObject.BallObject
 	InitialBallVelocity mgl32.Vec2 = mgl32.Vec2{100.0, -350.0}
 	BallRadius          float32    = 12.5
+
+	ShakeTime float32 = 0.0
 )
 
 var textureDir string = "../../../../resources/textures/"
 var levelDir string = "../../../../resources/levels/"
 var renderer *spriteRenderer.SpriteRenderer
 var Particles *particle.Generator
+var Effects *postProcessor.PostProcessor
 
 func New(width, height int) *Game {
 	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0}
@@ -58,6 +62,8 @@ func (g *Game) Init() {
 	// Load shaders
 	resourceManager.LoadShader("shaders/sprite.vs", "shaders/sprite.fs", "sprite")
 	resourceManager.LoadShader("shaders/particle.vs", "shaders/particle.fs", "particle")
+	resourceManager.LoadShader("shaders/postProcessing.vs",
+		"shaders/postProcessing.fs", "postprocessing")
 
 	// Configure shaders
 	projection := mgl32.Ortho(0.0, float32(g.Width), float32(g.Height), 0.0,
@@ -79,6 +85,8 @@ func (g *Game) Init() {
 	renderer = spriteRenderer.New(resourceManager.Shaders["sprite"])
 	Particles = particle.NewGenerator(resourceManager.Shaders["particle"],
 		resourceManager.Textures["particle"], 500)
+	Effects = postProcessor.New(resourceManager.Shaders["postprocessing"],
+		int32(g.Width), int32(g.Height))
 
 	// Load levels
 	w := uint32(g.Width)
@@ -134,9 +142,18 @@ func (g *Game) Update(dt float64) {
 	Ball.Move(float32(dt), uint32(g.Width))
 	g.DoCollisions()
 
-	Particles.Update(float32(dt), Ball.Object, 3, //2,
+	Particles.Update(float32(dt), Ball.Object, 2,
 		mgl32.Vec2{Ball.Radius / 2.0, Ball.Radius / 2.0})
 
+	// Reduce shake time
+	if ShakeTime > 0.0 {
+		ShakeTime -= float32(dt)
+		if ShakeTime <= 0 {
+			Effects.Shake = false
+		}
+	}
+
+	// Check loss condition
 	if Ball.Object.Position[1] >= float32(g.Height) {
 		g.ResetLevel()
 		g.ResetPlayer()
@@ -145,16 +162,19 @@ func (g *Game) Update(dt float64) {
 
 func (g *Game) Render() {
 	if g.State == GameActive {
+		Effects.BeginRender()
+
 		renderer.DrawSprite(resourceManager.Textures["background"],
 			mgl32.Vec2{0.0, 0.0}, mgl32.Vec2{float32(g.Width), float32(g.Height)},
 			0.0, mgl32.Vec3{1.0, 1.0, 1.0})
 
 		g.Levels[g.Level].Draw(renderer)
 		Player.Draw(renderer)
-
 		Particles.Draw()
-
 		Ball.Object.Draw(renderer)
+
+		Effects.EndRender()
+		Effects.Render(float32(glfw.GetTime()))
 	}
 }
 
@@ -183,6 +203,9 @@ func (g *Game) DoCollisions() {
 			if hit {
 				if !box.IsSolid {
 					box.Destroyed = true
+				} else {
+					ShakeTime = 0.10
+					Effects.Shake = true
 				}
 
 				// Collision resolution
