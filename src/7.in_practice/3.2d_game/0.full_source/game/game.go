@@ -85,6 +85,13 @@ func (g *Game) Init() {
 	resourceManager.LoadTexture(textureDir+"paddle.png", "paddle")
 	resourceManager.LoadTexture(textureDir+"particle.png", "particle")
 
+	resourceManager.LoadTexture(textureDir+"powerup_speed.png", "powerup_speed")
+	resourceManager.LoadTexture(textureDir+"powerup_sticky.png", "powerup_sticky")
+	resourceManager.LoadTexture(textureDir+"powerup_increase.png", "powerup_increase")
+	resourceManager.LoadTexture(textureDir+"powerup_confuse.png", "powerup_confuse")
+	resourceManager.LoadTexture(textureDir+"powerup_chaos.png", "powerup_chaos")
+	resourceManager.LoadTexture(textureDir+"powerup_passthrough.png", "powerup_passthrough")
+
 	// Set render-specific controls
 	renderer = spriteRenderer.New(resourceManager.Shaders["sprite"])
 	Particles = particle.NewGenerator(resourceManager.Shaders["particle"],
@@ -113,9 +120,6 @@ func (g *Game) Init() {
 		PlayerSize[0]/2.0 - BallRadius, -BallRadius * 2.0})
 	Ball = ballObject.New(ballPos, BallRadius, InitialBallVelocity,
 		resourceManager.Textures["face"])
-
-	Ball.Passthrough = true
-	Ball.Sticky = true
 }
 
 func (g *Game) ProcessInput(dt float64) {
@@ -152,6 +156,8 @@ func (g *Game) Update(dt float64) {
 	Particles.Update(float32(dt), Ball.Object, 2,
 		mgl32.Vec2{Ball.Radius / 2.0, Ball.Radius / 2.0})
 
+	g.UpdatePowerUps(float32(dt))
+
 	// Reduce shake time
 	if ShakeTime > 0.0 {
 		ShakeTime -= float32(dt)
@@ -177,6 +183,11 @@ func (g *Game) Render() {
 
 		g.Levels[g.Level].Draw(renderer)
 		Player.Draw(renderer)
+		for _, p := range g.PowerUps {
+			if !p.Object.Destroyed {
+				p.Object.Draw(renderer)
+			}
+		}
 		Particles.Draw()
 		Ball.Object.Draw(renderer)
 
@@ -268,7 +279,7 @@ func (g *Game) DoCollisions() {
 				powerUp.Object.Destroyed = true
 			}
 			if CheckCollision(Player, powerUp.Object) {
-				//ActivatePowerUp(powerUp)
+				ActivatePowerUp(powerUp)
 				powerUp.Object.Destroyed = true
 				powerUp.Activated = true
 			}
@@ -332,36 +343,41 @@ func VectorDirection(target mgl32.Vec2) int {
 }
 
 func shouldSpawn(chance int32) bool {
-	return rand.Int31n(chance) == 0 || true
+	return rand.Int31n(chance) == 0
 }
 
+const (
+	goodChance = 50
+	badChance  = 15
+)
+
 func (g *Game) SpawnPowerUps(block *gameObject.GameObject) {
-	if shouldSpawn(75) { // 1 in 75 chance
+	if shouldSpawn(goodChance) { // 1 in goodChance chance
 		g.PowerUps = append(g.PowerUps, powerUp.New("speed",
 			mgl32.Vec3{0.5, 0.5, 1.0}, 0.0, block.Position,
 			resourceManager.Textures["powerup_speed"]))
 	}
-	if shouldSpawn(75) {
+	if shouldSpawn(goodChance) {
 		g.PowerUps = append(g.PowerUps, powerUp.New("sticky",
 			mgl32.Vec3{1.0, 0.5, 1.0}, 20.0, block.Position,
 			resourceManager.Textures["powerup_sticky"]))
 	}
-	if shouldSpawn(75) {
+	if shouldSpawn(goodChance) {
 		g.PowerUps = append(g.PowerUps, powerUp.New("pass-through",
 			mgl32.Vec3{0.5, 1.0, 0.5}, 10.0, block.Position,
 			resourceManager.Textures["powerup_passthrough"]))
 	}
-	if shouldSpawn(75) {
+	if shouldSpawn(goodChance) {
 		g.PowerUps = append(g.PowerUps, powerUp.New("pad-size-increase",
 			mgl32.Vec3{1.0, 0.6, 0.4}, 0.0, block.Position,
 			resourceManager.Textures["powerup_increase"]))
 	}
-	if shouldSpawn(15) {
+	if shouldSpawn(badChance) {
 		g.PowerUps = append(g.PowerUps, powerUp.New("confuse",
 			mgl32.Vec3{1.0, 0.3, 0.3}, 15.0, block.Position,
 			resourceManager.Textures["powerup_confuse"]))
 	}
-	if shouldSpawn(15) {
+	if shouldSpawn(badChance) {
 		g.PowerUps = append(g.PowerUps, powerUp.New("chaos",
 			mgl32.Vec3{0.9, 0.25, 0.25}, 15.0, block.Position,
 			resourceManager.Textures["powerup_chaos"]))
@@ -393,7 +409,7 @@ func ActivatePowerUp(p *powerUp.PowerUp) {
 func (g *Game) UpdatePowerUps(dt float32) {
 	for i := 0; i < len(g.PowerUps); i++ {
 		p := g.PowerUps[i]
-		p.Object.Position = p.Object.Position.Add(powerUp.Velocity).Mul(dt)
+		p.Object.Position = p.Object.Position.Add(powerUp.Velocity.Mul(dt))
 		if p.Activated {
 			p.Duration -= dt
 			if p.Duration <= 0.0 {
