@@ -1,6 +1,8 @@
 package game
 
 import (
+	"math/rand"
+
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -10,6 +12,7 @@ import (
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/particle"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/postProcessor"
+	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/powerUp"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/resourceManager"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/spriteRenderer"
 )
@@ -28,12 +31,13 @@ const (
 )
 
 type Game struct {
-	State  int
-	Keys   []bool
-	Width  int
-	Height int
-	Levels []*gameLevel.GameLevel
-	Level  int
+	State    int
+	Keys     []bool
+	Width    int
+	Height   int
+	Levels   []*gameLevel.GameLevel
+	Level    int
+	PowerUps []*powerUp.PowerUp
 }
 
 var (
@@ -55,7 +59,7 @@ var Particles *particle.Generator
 var Effects *postProcessor.PostProcessor
 
 func New(width, height int) *Game {
-	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0}
+	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0, nil}
 }
 
 func (g *Game) Init() {
@@ -109,6 +113,9 @@ func (g *Game) Init() {
 		PlayerSize[0]/2.0 - BallRadius, -BallRadius * 2.0})
 	Ball = ballObject.New(ballPos, BallRadius, InitialBallVelocity,
 		resourceManager.Textures["face"])
+
+	Ball.Passthrough = true
+	Ball.Sticky = true
 }
 
 func (g *Game) ProcessInput(dt float64) {
@@ -203,31 +210,34 @@ func (g *Game) DoCollisions() {
 			if hit {
 				if !box.IsSolid {
 					box.Destroyed = true
+					g.SpawnPowerUps(box)
 				} else {
 					ShakeTime = 0.05
 					Effects.Shake = true
 				}
 
 				// Collision resolution
-				if dir == Left || dir == Right { // Horizontal collison
-					// Reverse horizontal velocity
-					Ball.Object.Velocity[0] = -Ball.Object.Velocity[0]
-					// Relocate
-					penetration := Ball.Radius - mgl32.Abs(diffVector[0])
-					if dir == Left {
-						Ball.Object.Position[0] += penetration
-					} else {
-						Ball.Object.Position[0] -= penetration
-					}
-				} else { // Vertical collision
-					// Reverse vertical velocity
-					Ball.Object.Velocity[1] = -Ball.Object.Velocity[1]
-					// Relocate
-					penetration := Ball.Radius - mgl32.Abs(diffVector[1])
-					if dir == Up {
-						Ball.Object.Position[1] -= penetration
-					} else {
-						Ball.Object.Position[1] += penetration
+				if !(Ball.Passthrough && !box.IsSolid) {
+					if dir == Left || dir == Right { // Horizontal collison
+						// Reverse horizontal velocity
+						Ball.Object.Velocity[0] = -Ball.Object.Velocity[0]
+						// Relocate
+						penetration := Ball.Radius - mgl32.Abs(diffVector[0])
+						if dir == Left {
+							Ball.Object.Position[0] += penetration
+						} else {
+							Ball.Object.Position[0] -= penetration
+						}
+					} else { // Vertical collision
+						// Reverse vertical velocity
+						Ball.Object.Velocity[1] = -Ball.Object.Velocity[1]
+						// Relocate
+						penetration := Ball.Radius - mgl32.Abs(diffVector[1])
+						if dir == Up {
+							Ball.Object.Position[1] -= penetration
+						} else {
+							Ball.Object.Position[1] += penetration
+						}
 					}
 				}
 			}
@@ -246,11 +256,24 @@ func (g *Game) DoCollisions() {
 		lenOldVelocity := oldVelocity.Len()
 		Ball.Object.Velocity[0] = InitialBallVelocity[0] * percentage * strength
 
-		//Ball.Object.Velocity[1] *= -1
 		Ball.Object.Velocity[1] = -1 * mgl32.Abs(Ball.Object.Velocity[1])
 		Ball.Object.Velocity = Ball.Object.Velocity.Normalize().Mul(lenOldVelocity)
+
+		Ball.Stuck = Ball.Sticky
 	}
 
+	for _, powerUp := range g.PowerUps {
+		if !powerUp.Object.Destroyed {
+			if powerUp.Object.Position[1] >= float32(g.Height) {
+				powerUp.Object.Destroyed = true
+			}
+			if CheckCollision(Player, powerUp.Object) {
+				//ActivatePowerUp(powerUp)
+				powerUp.Object.Destroyed = true
+				powerUp.Activated = true
+			}
+		}
+	}
 }
 
 func CheckCollision(one, two *gameObject.GameObject) bool {
@@ -306,4 +329,109 @@ func VectorDirection(target mgl32.Vec2) int {
 		}
 	}
 	return bestMatch
+}
+
+func shouldSpawn(chance int32) bool {
+	return rand.Int31n(chance) == 0 || true
+}
+
+func (g *Game) SpawnPowerUps(block *gameObject.GameObject) {
+	if shouldSpawn(75) { // 1 in 75 chance
+		g.PowerUps = append(g.PowerUps, powerUp.New("speed",
+			mgl32.Vec3{0.5, 0.5, 1.0}, 0.0, block.Position,
+			resourceManager.Textures["powerup_speed"]))
+	}
+	if shouldSpawn(75) {
+		g.PowerUps = append(g.PowerUps, powerUp.New("sticky",
+			mgl32.Vec3{1.0, 0.5, 1.0}, 20.0, block.Position,
+			resourceManager.Textures["powerup_sticky"]))
+	}
+	if shouldSpawn(75) {
+		g.PowerUps = append(g.PowerUps, powerUp.New("pass-through",
+			mgl32.Vec3{0.5, 1.0, 0.5}, 10.0, block.Position,
+			resourceManager.Textures["powerup_passthrough"]))
+	}
+	if shouldSpawn(75) {
+		g.PowerUps = append(g.PowerUps, powerUp.New("pad-size-increase",
+			mgl32.Vec3{1.0, 0.6, 0.4}, 0.0, block.Position,
+			resourceManager.Textures["powerup_increase"]))
+	}
+	if shouldSpawn(15) {
+		g.PowerUps = append(g.PowerUps, powerUp.New("confuse",
+			mgl32.Vec3{1.0, 0.3, 0.3}, 15.0, block.Position,
+			resourceManager.Textures["powerup_confuse"]))
+	}
+	if shouldSpawn(15) {
+		g.PowerUps = append(g.PowerUps, powerUp.New("chaos",
+			mgl32.Vec3{0.9, 0.25, 0.25}, 15.0, block.Position,
+			resourceManager.Textures["powerup_chaos"]))
+	}
+}
+
+func ActivatePowerUp(p *powerUp.PowerUp) {
+	if p.Type == "speed" {
+		Ball.Object.Velocity = Ball.Object.Velocity.Mul(1.2)
+	} else if p.Type == "sticky" {
+		Ball.Sticky = true
+		Player.Color = mgl32.Vec3{1.0, 0.5, 1.0}
+	} else if p.Type == "pass-through" {
+		Ball.Passthrough = true
+		Ball.Object.Color = mgl32.Vec3{1.0, 0.5, 0.5}
+	} else if p.Type == "pad-size-increase" {
+		Player.Size[0] += 50
+	} else if p.Type == "confuse" {
+		if !Effects.Chaos {
+			Effects.Confuse = true
+		}
+	} else if p.Type == "chaos" {
+		if !Effects.Confuse {
+			Effects.Chaos = true
+		}
+	}
+}
+
+func (g *Game) UpdatePowerUps(dt float32) {
+	for i := 0; i < len(g.PowerUps); i++ {
+		p := g.PowerUps[i]
+		p.Object.Position = p.Object.Position.Add(powerUp.Velocity).Mul(dt)
+		if p.Activated {
+			p.Duration -= dt
+			if p.Duration <= 0.0 {
+				p.Activated = false
+				// Deativate effects
+				if p.Type == "sticky" {
+					if !g.isPowerActive("sticky") {
+						Ball.Sticky = false
+						Player.Color = mgl32.Vec3{1.0, 1.0, 1.0}
+					}
+				} else if p.Type == "pass-through" {
+					if !g.isPowerActive("pass-through") {
+						Ball.Passthrough = false
+						Ball.Object.Color = mgl32.Vec3{1.0, 1.0, 1.0}
+					}
+				} else if p.Type == "confuse" {
+					if !g.isPowerActive("confuse") {
+						Effects.Confuse = false
+					}
+				} else if p.Type == "chaos" {
+					if !g.isPowerActive("chaos") {
+						Effects.Chaos = false
+					}
+				}
+			}
+		}
+
+		if !p.Activated && p.Object.Destroyed {
+			g.PowerUps = append(g.PowerUps[:i], g.PowerUps[i+1:]...)
+		}
+	}
+}
+
+func (g *Game) isPowerActive(power string) bool {
+	for _, p := range g.PowerUps {
+		if p.Activated && p.Type == power {
+			return true
+		}
+	}
+	return false
 }

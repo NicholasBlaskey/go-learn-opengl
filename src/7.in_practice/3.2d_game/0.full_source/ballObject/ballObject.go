@@ -8,13 +8,15 @@ import (
 )
 
 type BallObject struct {
-	Radius float32
-	Stuck  bool
-	Object *gameObject.GameObject
+	Radius      float32
+	Stuck       bool
+	Object      *gameObject.GameObject
+	Sticky      bool
+	Passthrough bool
 }
 
 func NewDefault() *BallObject {
-	return &BallObject{12.5, true, gameObject.NewDefault()}
+	return &BallObject{12.5, true, gameObject.NewDefault(), false, false}
 }
 
 func New(pos mgl32.Vec2, radius float32,
@@ -23,7 +25,7 @@ func New(pos mgl32.Vec2, radius float32,
 	return &BallObject{radius, true,
 		gameObject.New(pos, mgl32.Vec2{radius * 2.0, radius * 2.0},
 			sprite, mgl32.Vec3{1.0, 1.0, 1.0}, velocity,
-		)}
+		), false, false}
 }
 
 func (b *BallObject) Move(dt float32, windowWidth uint32) mgl32.Vec2 {
