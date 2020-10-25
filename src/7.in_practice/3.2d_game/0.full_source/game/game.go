@@ -1,11 +1,14 @@
 package game
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
+
+	"github.com/nicholasblaskey/glfont"
 
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/audio"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/ballObject"
@@ -32,13 +35,15 @@ const (
 )
 
 type Game struct {
-	State    int
-	Keys     []bool
-	Width    int
-	Height   int
-	Levels   []*gameLevel.GameLevel
-	Level    int
-	PowerUps []*powerUp.PowerUp
+	State         int
+	Keys          []bool
+	KeysProcessed []bool
+	Width         int
+	Height        int
+	Levels        []*gameLevel.GameLevel
+	Level         int
+	PowerUps      []*powerUp.PowerUp
+	Lives         int
 }
 
 var (
@@ -56,13 +61,16 @@ var (
 var textureDir string = "../../../../resources/textures/"
 var levelDir string = "../../../../resources/levels/"
 var audioDir string = "../../../../resources/audio/"
+var fontDir string = "../../../../resources/fonts/"
 var renderer *spriteRenderer.SpriteRenderer
 var Particles *particle.Generator
 var Effects *postProcessor.PostProcessor
 var AudioPlayer *audio.Player
+var Text *glfont.Font
 
 func New(width, height int) *Game {
-	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0, nil}
+	return &Game{GameMenu, make([]bool, 1024), make([]bool, 1024),
+		width, height, nil, 0, nil, 3}
 }
 
 func (g *Game) Init() {
@@ -101,6 +109,12 @@ func (g *Game) Init() {
 		resourceManager.Textures["particle"], 500)
 	Effects = postProcessor.New(resourceManager.Shaders["postprocessing"],
 		int32(g.Width), int32(g.Height))
+	var err error
+	Text, err = glfont.LoadFont(fontDir+"OCRAEXT.TTF", int32(24), g.Width, g.Height)
+	if err != nil {
+		panic(err)
+	}
+	Text.SetColor(1.0, 1.0, 1.0, 1.0)
 
 	// Load levels
 	w := uint32(g.Width)
@@ -131,6 +145,24 @@ func (g *Game) Init() {
 }
 
 func (g *Game) ProcessInput(dt float64) {
+	if g.State == GameMenu {
+		if g.Keys[glfw.KeyEnter] && !g.KeysProcessed[glfw.KeyEnter] {
+			g.State = GameActive
+			g.KeysProcessed[glfw.KeyEnter] = true
+		}
+		if g.Keys[glfw.KeyW] && !g.KeysProcessed[glfw.KeyW] {
+			g.Level = (g.Level + 1) % 4
+			g.KeysProcessed[glfw.KeyW] = true
+		}
+		if g.Keys[glfw.KeyS] && !g.KeysProcessed[glfw.KeyS] {
+			g.Level -= 1
+			if g.Level < 0 {
+				g.Level = 3
+			}
+			g.KeysProcessed[glfw.KeyS] = true
+		}
+	}
+
 	if g.State == GameActive {
 		velocity := PlayerVelocity * float32(dt)
 
@@ -154,6 +186,12 @@ func (g *Game) ProcessInput(dt float64) {
 		if g.Keys[glfw.KeySpace] {
 			Ball.Stuck = false
 		}
+	} else if g.State == GameWin {
+		if g.Keys[glfw.KeyEnter] {
+			g.KeysProcessed[glfw.KeyEnter] = true
+			Effects.Chaos = false
+			g.State = GameMenu
+		}
 	}
 }
 
@@ -176,13 +214,25 @@ func (g *Game) Update(dt float64) {
 
 	// Check loss condition
 	if Ball.Object.Position[1] >= float32(g.Height) {
+		g.Lives -= 1
+		if g.Lives == 0 {
+			g.ResetLevel()
+			g.State = GameMenu
+		}
+		g.ResetPlayer()
+	}
+
+	// Check win condition
+	if g.State == GameActive && g.Levels[g.Level].IsCompleted() {
 		g.ResetLevel()
 		g.ResetPlayer()
+		Effects.Chaos = true
+		g.State = GameWin
 	}
 }
 
 func (g *Game) Render() {
-	if g.State == GameActive {
+	if g.State == GameActive || g.State == GameMenu || g.State == GameWin {
 		Effects.BeginRender()
 
 		renderer.DrawSprite(resourceManager.Textures["background"],
@@ -201,6 +251,16 @@ func (g *Game) Render() {
 
 		Effects.EndRender()
 		Effects.Render(float32(glfw.GetTime()))
+		Text.Printf(5.0, 20.0, 1.0, fmt.Sprintf("Lives: %d", g.Lives))
+	}
+	if g.State == GameMenu {
+		Text.Printf(250.0, float32(g.Height)/2.0, 1.0, "Press enter to start")
+		Text.Printf(245.0, float32(g.Height)/2.0+20.0, 0.75, "Press W or S to select a level")
+	} else if g.State == GameWin {
+		Text.SetColor(0.0, 1.0, 0.0, 1.0)
+		Text.Printf(320.0, float32(g.Height)/2.0-20, 1.0, "You Won!!")
+		Text.SetColor(1.0, 1.0, 1.0, 1.0)
+		Text.Printf(130.0, float32(g.Height)/2.0, 1.0, "Press ENTER to retry or ESC to quit")
 	}
 }
 
@@ -208,6 +268,7 @@ func (g *Game) ResetLevel() {
 	lName := []string{"one", "two", "three", "four"}[g.Level]
 	g.Levels[g.Level].Load(levelDir+lName+".lvl",
 		uint32(g.Width), uint32(g.Height/2))
+	g.Lives = 3
 }
 
 func (g *Game) ResetPlayer() {
@@ -217,6 +278,10 @@ func (g *Game) ResetPlayer() {
 		float32(g.Width)/2.0 - PlayerSize[0]/2.0,
 		float32(g.Height) - PlayerSize[1],
 	}
+	Effects.Chaos = false
+	Effects.Confuse = false
+	Ball.Passthrough = false
+	Ball.Sticky = false
 	Ball.Reset(Player.Position.Add(
 		mgl32.Vec2{PlayerSize[0]/2.0 - BallRadius, -(BallRadius * 2.0)}),
 		InitialBallVelocity)
