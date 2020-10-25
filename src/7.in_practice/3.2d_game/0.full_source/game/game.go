@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-gl/glfw/v3.1/glfw"
 
+	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/audio"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/ballObject"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameLevel"
 	"github.com/nicholasblaskey/go-learn-opengl/src/7.in_practice/3.2d_game/0.full_source/gameObject"
@@ -54,6 +55,7 @@ var (
 
 var textureDir string = "../../../../resources/textures/"
 var levelDir string = "../../../../resources/levels/"
+var audioDir string = "../../../../resources/audio/"
 var renderer *spriteRenderer.SpriteRenderer
 var Particles *particle.Generator
 var Effects *postProcessor.PostProcessor
@@ -120,6 +122,9 @@ func (g *Game) Init() {
 		PlayerSize[0]/2.0 - BallRadius, -BallRadius * 2.0})
 	Ball = ballObject.New(ballPos, BallRadius, InitialBallVelocity,
 		resourceManager.Textures["face"])
+
+	//go audio.Play(audioDir+"breakout.mp3", true)
+	go audio.Play(audioDir+"bleep.wav", true)
 }
 
 func (g *Game) ProcessInput(dt float64) {
