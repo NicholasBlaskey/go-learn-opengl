@@ -114,8 +114,6 @@ func main() {
 
 		ourShader.Use()
 
-		log.Println("FRAME PASSED")
-
 		// View / projection transformations
 		projection := mgl32.Perspective(mgl32.DegToRad(ourCamera.Zoom),
 			float32(windowWidth)/windowHeight, 0.1, 100.0)

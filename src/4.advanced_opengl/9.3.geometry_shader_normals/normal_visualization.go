@@ -94,7 +94,6 @@ func main() {
 	normalShader := shader.MakeGeomShaders("9.3.normal_visualization.vs",
 		"9.3.normal_visualization.fs", "9.3.normal_visualization.gs")
 	ourModel := loadModel.NewModel(
-		//"../../../resources/objects/nanosuit/nanosuit.obj", false)
 		"../../../resources/objects/backpack/backpack.obj", false)
 
 	// Draw in polygon mode
