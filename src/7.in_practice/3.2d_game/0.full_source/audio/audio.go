@@ -11,60 +11,34 @@ import (
 
 var sampleRate int = 44100
 
-func Play(file string, repeat bool) {
-	var decoder io.Reader
-	var sampleRate int
-	f, err := os.Open(file)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
+type Player struct {
+	context *oto.Context
+}
 
-	isMp3 := file[len(file)-4:] == ".mp3"
-	if isMp3 {
-		d, err := mp3.NewDecoder(f)
-		if err != nil {
-			panic(err)
-		}
-		sampleRate = d.SampleRate()
-		decoder = d
-		/*
-			c, err := oto.NewContext(d.SampleRate(), 2, 2, 8192)
-			if err != nil {
-				panic(err)
-			}
-			defer c.Close()
-		*/
-	} else {
-		fInfo, err := os.Stat(file)
-		if err != nil {
-			panic(err)
-		}
-
-		w, err := wav.NewReader(f, fInfo.Size())
-		if err != nil {
-			panic(err)
-		}
-
-		decoder, err = w.GetDumbReader()
-		if err != nil {
-			panic(err)
-		}
-		sampleRate = int(w.GetSampleRate())
-	}
-
-	panic(sampleRate)
-
+func New() *Player {
 	c, err := oto.NewContext(sampleRate, 2, 2, 8192)
 	if err != nil {
 		panic(err)
 	}
-	defer c.Close()
 
-	p := c.NewPlayer()
-	defer p.Close()
+	return &Player{c}
+}
+
+func (p *Player) Play(file string, repeat bool) {
+	var decoder io.Reader
+	var close func() error
+	isMp3 := file[len(file)-4:] == ".mp3"
+	if isMp3 {
+		decoder, close = getMp3Reader(file)
+	} else {
+		decoder, close = getWavReader(file)
+	}
+	defer close()
+
+	player := p.context.NewPlayer()
+	defer player.Close()
 	for {
-		if _, err := io.Copy(p, decoder); err != nil {
+		if _, err := io.Copy(player, decoder); err != nil {
 			panic(err)
 		}
 
@@ -73,9 +47,45 @@ func Play(file string, repeat bool) {
 		}
 
 		if isMp3 {
-
+			decoder, close = getMp3Reader(file)
 		} else {
-			//d, err = w.GetDumbReader()
+			decoder, close = getWavReader(file)
 		}
+		defer close()
 	}
+}
+
+func getMp3Reader(file string) (io.Reader, func() error) {
+	f, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+
+	decoder, err := mp3.NewDecoder(f)
+	if err != nil {
+		panic(err)
+	}
+	return decoder, f.Close
+}
+
+func getWavReader(file string) (io.Reader, func() error) {
+	fInfo, err := os.Stat(file)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+
+	w, err := wav.NewReader(f, fInfo.Size())
+	if err != nil {
+		panic(err)
+	}
+	decoder, err := w.GetDumbReader()
+	if err != nil {
+		panic(err)
+	}
+	return decoder, f.Close
 }

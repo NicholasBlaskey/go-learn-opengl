@@ -59,6 +59,7 @@ var audioDir string = "../../../../resources/audio/"
 var renderer *spriteRenderer.SpriteRenderer
 var Particles *particle.Generator
 var Effects *postProcessor.PostProcessor
+var AudioPlayer *audio.Player
 
 func New(width, height int) *Game {
 	return &Game{GameActive, make([]bool, 1024), width, height, nil, 0, nil}
@@ -123,8 +124,10 @@ func (g *Game) Init() {
 	Ball = ballObject.New(ballPos, BallRadius, InitialBallVelocity,
 		resourceManager.Textures["face"])
 
-	//go audio.Play(audioDir+"breakout.mp3", true)
-	go audio.Play(audioDir+"bleep.wav", true)
+	AudioPlayer = audio.New()
+	go AudioPlayer.Play(audioDir+"breakout.mp3", true)
+	//go AudioPlayer.Play(audioDir+"breakout.mp3", false)
+	//go AudioPlayer.Play(audioDir+"bleep.wav", true)
 }
 
 func (g *Game) ProcessInput(dt float64) {
@@ -227,9 +230,11 @@ func (g *Game) DoCollisions() {
 				if !box.IsSolid {
 					box.Destroyed = true
 					g.SpawnPowerUps(box)
+					go AudioPlayer.Play(audioDir+"bleep.mp3", false)
 				} else {
 					ShakeTime = 0.05
 					Effects.Shake = true
+					go AudioPlayer.Play(audioDir+"solid.wav", false)
 				}
 
 				// Collision resolution
@@ -260,6 +265,20 @@ func (g *Game) DoCollisions() {
 		}
 	}
 
+	for _, powerUp := range g.PowerUps {
+		if !powerUp.Object.Destroyed {
+			if powerUp.Object.Position[1] >= float32(g.Height) {
+				powerUp.Object.Destroyed = true
+			}
+			if CheckCollision(Player, powerUp.Object) {
+				ActivatePowerUp(powerUp)
+				powerUp.Object.Destroyed = true
+				powerUp.Activated = true
+				go AudioPlayer.Play(audioDir+"powerup.wav", false)
+			}
+		}
+	}
+
 	hit, _, _ := CheckCollisionBall(Ball, Player)
 	if !Ball.Stuck && hit {
 		// Check where it hit the board
@@ -276,20 +295,9 @@ func (g *Game) DoCollisions() {
 		Ball.Object.Velocity = Ball.Object.Velocity.Normalize().Mul(lenOldVelocity)
 
 		Ball.Stuck = Ball.Sticky
+		go AudioPlayer.Play(audioDir+"bleep.wav", false)
 	}
 
-	for _, powerUp := range g.PowerUps {
-		if !powerUp.Object.Destroyed {
-			if powerUp.Object.Position[1] >= float32(g.Height) {
-				powerUp.Object.Destroyed = true
-			}
-			if CheckCollision(Player, powerUp.Object) {
-				ActivatePowerUp(powerUp)
-				powerUp.Object.Destroyed = true
-				powerUp.Activated = true
-			}
-		}
-	}
 }
 
 func CheckCollision(one, two *gameObject.GameObject) bool {
