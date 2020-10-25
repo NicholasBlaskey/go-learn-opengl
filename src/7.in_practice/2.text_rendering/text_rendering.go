@@ -1,3 +1,6 @@
+// Translated from
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/7.in_practice/2.text_rendering/text_rendering.cpp
+
 package main
 
 import (

@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/5.advanced_lighting/3.1.1.shadow_mapping_depth/shadow_mapping_depth.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/5.advanced_lighting/5.2.steep_parallax_mapping/steep_parallax_mapping.cpp
 
 package main
 

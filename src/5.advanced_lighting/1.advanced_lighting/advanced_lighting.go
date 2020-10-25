@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/4.advanced_opengl/1.1.depth_testing/depth_testing.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/5.advanced_lighting/1.advanced_lighting/advanced_lighting.cpp
 
 package main
 

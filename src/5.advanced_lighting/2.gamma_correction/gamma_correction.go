@@ -1,5 +1,5 @@
 // Translated from
-// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/4.advanced_opengl/1.1.depth_testing/depth_testing.cpp
+// https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/5.advanced_lighting/2.gamma_correction/gamma_correction.cpp
 
 package main
 
