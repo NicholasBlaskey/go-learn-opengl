@@ -93,6 +93,8 @@ import (
 	//"github.com/go-gl/mathgl/mgl32"
 	"github.com/go-gl/gl/v4.1-core/gl"
 
+	"github.com/disintegration/imaging"
+
 	"github.com/nicholasblaskey/go-learn-opengl/includes/mesh"
 	"github.com/nicholasblaskey/go-learn-opengl/includes/shader"
 	loadTexture "github.com/nicholasblaskey/go-learn-opengl/includes/texture"
@@ -278,7 +280,7 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 		if !haveLoaded {
 			var texture mesh.Texture
 
-			texture.Id = TextureFromFile(pathAsGoString,
+			texture.Id = TextureFromFileFlipped(pathAsGoString,
 				model.directory, false)
 
 			texture.TextureType = typeName
@@ -292,6 +294,39 @@ func (model *Model) loadMaterialTextures(mat *C.struct_aiMaterial,
 
 // Not part of class
 // TextureFromFile
+func TextureFromFileFlipped(path string, directory string, gamma bool) uint32 {
+	filePath := directory + "/" + path
+
+	var textureID uint32
+	gl.GenTextures(1, &textureID)
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
+
+	d := loadTexture.ImageLoad(filePath)
+	data := imaging.FlipV(d)
+
+	gl.BindTexture(gl.TEXTURE_2D, textureID)
+	gl.TexImage2D(
+		gl.TEXTURE_2D,
+		0,
+		gl.RGBA,
+		int32(data.Rect.Size().X),
+		int32(data.Rect.Size().Y),
+		0,
+		gl.RGBA,
+		gl.UNSIGNED_BYTE,
+		gl.Ptr(data.Pix))
+	gl.GenerateMipmap(gl.TEXTURE_2D)
+
+	// Set texture parameters for wrapping
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,
+		gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+	return textureID
+}
+
 func TextureFromFile(path string, directory string, gamma bool) uint32 {
 	filePath := directory + "/" + path
 
@@ -300,7 +335,6 @@ func TextureFromFile(path string, directory string, gamma bool) uint32 {
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 
 	data := loadTexture.ImageLoad(filePath)
-
 	gl.BindTexture(gl.TEXTURE_2D, textureID)
 	gl.TexImage2D(
 		gl.TEXTURE_2D,
