@@ -44,7 +44,7 @@ go run hello_triangle.go
 
 Open up an issue if you are having trouble with getting the code to build. 
 
-### Some code taken from
+### Great examples that helped along the way
 
 https://github.com/cstegel/opengl-samples-golang
 
