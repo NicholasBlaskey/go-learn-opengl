@@ -6,12 +6,11 @@
 package model
 
 /*
-// for linux
-#cgo pkg-config: assimp
+#cgo linux pkg-config: assimp
+#cgo darwin pkg-config: assimp
 
-// For windows
-//#cgo CPPFLAGS: -I/mingw64/include -std=c99
-//#cgo LDFLAGS: -L/mingw64/lib -lassimp -lz -lstdc++
+#cgo windows CPPFLAGS: -I/mingw64/include -std=c99
+#cgo windows LDFLAGS: -L/mingw64/lib -lassimp -lz -lstdc++
 
 #include <stdio.h>
 #include <stdlib.h>
