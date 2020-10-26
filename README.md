@@ -1,12 +1,10 @@
 # go-learn-opengl
 
-Code translated from the [great tutorial](https://learnopengl.com/) by [Joey de Vries](https://twitter.com/JoeyDeVriez).
-
-https://github.com/JoeyDeVries/LearnOpenGL
+Code translated into go from the [great tutorial](https://learnopengl.com/) by [Joey de Vries](https://twitter.com/JoeyDeVriez). The original repo is [here](https://github.com/JoeyDeVries/LearnOpenGL).
 
 ## Building
 
-### Linux specific (well ubuntu but it is mostly the same)
+### Linux specific (well ubuntu but it is mostly the same on other distros likely)
 
 For model loading 
 ```
